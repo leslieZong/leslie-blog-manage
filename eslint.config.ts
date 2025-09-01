@@ -1,5 +1,8 @@
 import { globalIgnores } from 'eslint/config'
-import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+import {
+  defineConfigWithVueTs,
+  vueTsConfigs,
+} from '@vue/eslint-config-typescript'
 import pluginVue from 'eslint-plugin-vue'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 
@@ -19,4 +22,15 @@ export default defineConfigWithVueTs(
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
   skipFormatting,
+  // 添加规则配置对象
+  {
+    rules: {
+      'vue/multi-word-component-names': [
+        'error',
+        {
+          ignores: ['index', 'Index', 'Default', 'Layout'],
+        },
+      ],
+    },
+  }
 )
