@@ -8,4 +8,9 @@ export default {
       about: '关于',
     },
   },
+  searchDialog: {
+    title: '搜索',
+    placeholder: '请输入搜索内容',
+    search: '搜索',
+  },
 }

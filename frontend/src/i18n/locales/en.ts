@@ -8,4 +8,9 @@ export default {
       about: 'About',
     },
   },
+  searchDialog: {
+    title: 'Search',
+    placeholder: 'Enter search content',
+    search: 'Search',
+  },
 }
