@@ -37,5 +37,10 @@ export default {
       description2:'AI, engineering and things I\'m exploring.',
       viewAll:'View all',
     },
+    latestPosts:{
+      title:'Latest Articles',
+      description:'Recent thoughts, experiments, and things I\'ve been learning.',
+      viewAll:'View all',
+    },
   }
 }

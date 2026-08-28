@@ -123,6 +123,12 @@ const handleClickAll = () => {
       flex-direction: column;
       gap: 20px;
       cursor: pointer;
+      transition: transform 0.5s ease-in-out;
+
+      &:hover {
+        transform: scale(1.03);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
       .cover {
         width: 100%;
         object-fit: cover;
@@ -167,6 +173,11 @@ const handleClickAll = () => {
         flex-direction: column;
         gap: 10px;
         cursor: pointer;
+        transition: transform 0.5s ease-in-out;
+        &:hover {
+          transform: scale(1.03);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
         .cover {
           width: 100%;
         }

@@ -37,5 +37,10 @@ export default {
       description2: '记录技术实践、问题解决与持续思考。',
       viewAll: '查看全部文章',
     },
+    latestPosts: {
+      title: '最新文章',
+      description: '查看最新发布的文章，了解最新的技术趋势、项目更新与行业动态。',
+      viewAll: '查看全部文章',
+    },
   },
 }
