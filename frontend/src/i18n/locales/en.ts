@@ -47,5 +47,10 @@ export default {
       description:'Explore the technologies and ideas behind my work.',
       viewAll:'View all',
     },
+    project:{
+      title:'Projects',
+      description:'A selection of things I\'ve built and explored.',
+      viewAll:'View all',
+    },
   }
 }

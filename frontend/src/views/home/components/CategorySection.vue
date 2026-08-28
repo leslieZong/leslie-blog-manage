@@ -70,7 +70,6 @@ const handleClickAll = () => {
       gap: 12px;
       overflow: hidden;
       padding: 12px;
-      background-color: linear-gradient(to right, #111, #666, #e5e5e5);
       border-bottom: 1px solid var(--el-border-color);
       cursor: pointer;
       transition: all 0.5s ease-in-out;
