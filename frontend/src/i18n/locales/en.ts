@@ -16,8 +16,12 @@ export default {
   home:{
     hero:{
       greeting:'👋 Hello, I am Leslie',
-      title:'Building for the <span class="web">Web</span>',
-      subTitle:'Exploring <span class="ai">AI</span>',
+      titlePrefix:'Building for the',
+      titleHighlight:'Web',
+      titleSuffix:'',
+      subTitlePrefix:'Exploring',
+      subTitleHighlight:'AI',
+      subTitleSuffix:'',
       role:'Frontend Engineer & AI Developer',
       description:'I build modern web applications, developer tools and AI-powered experiences',
       exploreArticles:'Explore Articles',

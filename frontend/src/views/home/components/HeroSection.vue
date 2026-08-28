@@ -21,8 +21,16 @@
         <div>{{ $t('home.hero.greeting') }}</div>
 
         <div class="hero-title">
-          <span v-html="$t('home.hero.title')"></span>
-          <span v-html="$t('home.hero.subTitle')"></span>
+          <span>
+            {{ $t('home.hero.titlePrefix') }}
+            <span class="web">{{ $t('home.hero.titleHighlight') }}</span>
+            {{ $t('home.hero.titleSuffix') }}
+          </span>
+          <span>
+            {{ $t('home.hero.subTitlePrefix') }}
+            <span class="ai">{{ $t('home.hero.subTitleHighlight') }}</span>
+            {{ $t('home.hero.subTitleSuffix') }}
+          </span>
         </div>
 
         <p class="hero-role">{{ $t('home.hero.role') }}</p>
@@ -80,6 +88,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icon/index.vue'
+import { isSafeUrl } from '@/utils/sanitize'
 const stackList = ref(['Vue', 'TypeScript', 'Vite', 'Go', 'AI'])
 
 // 背景点缀：固定位置，仅 twinkle 呼吸
@@ -126,7 +135,8 @@ const socialList = computed(() => [
 ])
 
 const handleClick = (link: string) => {
-  window.open(link, '_blank')
+  if (!isSafeUrl(link)) return
+  window.open(link, '_blank', 'noopener,noreferrer')
 }
 </script>
 

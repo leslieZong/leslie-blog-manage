@@ -16,8 +16,12 @@ export default {
   home: {
     hero: {
       greeting: '👋 你好，我是 Leslie',
-      title: '为 <span class="web">Web</span> 而生',
-      subTitle: '向 <span class="ai">AI</span> 而行',
+      titlePrefix: '为',
+      titleHighlight: 'Web',
+      titleSuffix: '而生',
+      subTitlePrefix: '向',
+      subTitleHighlight: 'AI',
+      subTitleSuffix: '而行',
       role: '前端工程师 & AI 开发者',
       description: '专注于构建现代 Web 应用、开发者工具，以及 AI 驱动的产品体验',
       exploreArticles: '探索文章',
