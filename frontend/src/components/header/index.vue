@@ -150,7 +150,6 @@ const handleClickSearch = () => {
 const isScrolled = ref(false)
 // 监听滚动事件，更新 isScrolled
 const handleScroll = () => {
-  console.log(window.scrollY)
   isScrolled.value = window.scrollY > 20
 }
 onMounted(() => {
@@ -168,7 +167,8 @@ onBeforeUnmount(() => {
   left: 50%;
   z-index: 1000;
   width: calc(100% - 40px);
-  max-width: 1440px;
+  max-width: 1200px;
+  min-width: 640px;
   transform: translateX(-50%);
   transition:
     top 0.3s ease,

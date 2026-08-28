@@ -151,7 +151,7 @@ const handleClick = (link: string) => {
   }
   .hero-content-container {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
     .hero-content {
       display: flex;

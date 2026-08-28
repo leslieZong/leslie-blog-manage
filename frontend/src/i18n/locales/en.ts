@@ -26,6 +26,12 @@ export default {
       rss:'RSS',
       email:'Email',
       exploreBlog:'Embark on a journey of blog exploration',
-    }
+    },
+    featuredArticles:{
+      title:'Featured Articles',
+      description1:'Selected writings on frontend,',
+      description2:'AI, engineering and things I\'m exploring.',
+      viewAll:'View all',
+    },
   }
 }

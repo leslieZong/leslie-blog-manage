@@ -38,6 +38,9 @@ const hasHeader = computed(() => route.meta.hasHeader)
   color: var(--el-text-color-primary);
   .content {
     padding: 140px 20px 20px;
+    background-color: var(--el-bg-color-page);
+    max-width: 1200px;
+    margin: 0 auto;
   }
 }
 </style>
