@@ -25,6 +25,7 @@ export default {
       github:'GitHub',
       rss:'RSS',
       email:'Email',
+      exploreBlog:'Embark on a journey of blog exploration',
     }
   }
 }

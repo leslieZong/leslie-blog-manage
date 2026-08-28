@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
   left: 50%;
   z-index: 1000;
   width: calc(100% - 40px);
-  max-width: 1180px;
+  max-width: 1440px;
   transform: translateX(-50%);
   transition:
     top 0.3s ease,
@@ -242,6 +242,11 @@ onBeforeUnmount(() => {
       }
       .github-icon {
         cursor: pointer;
+        &:hover {
+          color: var(--el-color-primary);
+          transform: scale(1.1);
+          transition: all 0.3s ease;
+        }
       }
     }
   }
