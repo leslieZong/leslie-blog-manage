@@ -55,7 +55,7 @@
         </el-dropdown>
 
         <!-- GitHub 仓库 -->
-        <GitHubIcon @click="handleClickGitHub" class="github-icon" />
+        <GitHubIcon name="github" size="24" @click="handleClickGitHub" class="github-icon" />
       </div>
     </div>
     <!-- 查询弹窗 -->
@@ -69,7 +69,7 @@ import { Sunny, Moon } from '@element-plus/icons-vue'
 import { useThemeStore } from '@/stores/theme'
 import { useLangStore } from '@/stores/language'
 import { useI18n } from 'vue-i18n'
-import GitHubIcon from '@/components/github-icon/index.vue'
+import GitHubIcon from '@/components/icon/index.vue'
 import SearchDialog from '@/components/search-dialog/index.vue'
 
 // 初始化语言
@@ -241,7 +241,6 @@ onBeforeUnmount(() => {
         cursor: pointer;
       }
       .github-icon {
-        height: 40px;
         cursor: pointer;
       }
     }

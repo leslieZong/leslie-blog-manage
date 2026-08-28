@@ -8,6 +8,8 @@
     destroy-on-close
     :modal="false"
     modal-penetrable
+    append-to-body
+    class="search-dialog"
   >
     <div class="search-dialog-content">
       <el-input v-model="searchText" :placeholder="$t('searchDialog.placeholder')" />
@@ -45,8 +47,9 @@ const handleSearch = () => {
   updateModelValue(false)
 }
 </script>
-<style scoped lang="scss">
+<style lang="scss">
 .search-dialog {
-  width: 400px;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 </style>
