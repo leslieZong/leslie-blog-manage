@@ -42,5 +42,10 @@ export default {
       description:'Recent thoughts, experiments, and things I\'ve been learning.',
       viewAll:'View all',
     },
+    category:{
+      title:'Topics',
+      description:'Explore the technologies and ideas behind my work.',
+      viewAll:'View all',
+    },
   }
 }

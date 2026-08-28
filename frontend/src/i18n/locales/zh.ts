@@ -42,5 +42,10 @@ export default {
       description: '查看最新发布的文章，了解最新的技术趋势、项目更新与行业动态。',
       viewAll: '查看全部文章',
     },
+    category: {
+      title: '主题',
+      description: '探索我项目背后的技术与理念。',
+      viewAll: '查看全部主题',
+    },
   },
 }
