@@ -52,5 +52,10 @@ export default {
       description: '我开发与维护的项目。',
       viewAll: '查看全部项目',
     },
+    techStack: {
+      title: '技术栈',
+      description: '我正在使用的技术栈，包括前端、后端、数据库、服务器等。',
+      viewAll: '查看全部技术栈',
+    },
   },
 }
