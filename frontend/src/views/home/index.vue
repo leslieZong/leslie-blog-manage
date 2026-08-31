@@ -23,7 +23,6 @@
 
     <!-- 关于我 -->
     <AboutSection />
-
   </main>
 </template>
 

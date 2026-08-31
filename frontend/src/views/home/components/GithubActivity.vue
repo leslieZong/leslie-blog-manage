@@ -67,7 +67,7 @@ const locale = {
 
 const tooltipFormatter = (day: HeatmapDay) => {
   const date = dayjs(day.date).format('MMM D, YYYY')
-  return day.value === 0 ? `${date} No contributions` : `${date} ${day.value} contributions`
+  return day.value === 0 ? `${date} No contributions` : `${day.value} contributions on ${date} `
 }
 
 // 演示数据：覆盖滚动的一年（range="year" 渲染过去 365 天），稳定伪随机分布
