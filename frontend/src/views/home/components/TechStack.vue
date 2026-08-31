@@ -106,6 +106,7 @@ const techStackList = ref([
         align-items: center;
         gap: 6px;
         color: var(--el-text-color-regular);
+        transition: transform 0.5s ease-in-out;
         &:hover {
           transform: translateX(4px);
           color: var(--el-color-primary);

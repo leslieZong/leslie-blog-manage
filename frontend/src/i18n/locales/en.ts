@@ -58,5 +58,10 @@ export default {
       description: 'Technologies and tools I use to build things.',
       viewAll: 'View all',
     },
+    githubActivity: {
+      title: 'GitHub Activity ',
+      description: "A glimpse into what I've been building lately.",
+      viewAll: 'GitHub ↗',
+    },
   },
 }

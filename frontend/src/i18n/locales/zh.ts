@@ -57,5 +57,10 @@ export default {
       description: '我正在使用的技术栈，包括前端、后端、数据库、服务器等。',
       viewAll: '查看全部技术栈',
     },
+    githubActivity: {
+      title: 'GitHub 活跃度',
+      description: '查看我在 GitHub 上的活动，包括项目贡献、问题解决、代码提交等。',
+      viewAll: 'GitHub ↗',
+    },
   },
 }
