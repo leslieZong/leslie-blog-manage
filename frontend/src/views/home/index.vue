@@ -22,7 +22,7 @@
     <GithubActivity />
 
     <!-- 关于我 -->
-    <AboutSection />
+    <!-- <AboutSection /> -->
   </main>
 </template>
 
@@ -34,7 +34,7 @@ import CategorySection from './components/CategorySection.vue'
 import ProjectSection from './components/ProjectSection.vue'
 import TechStack from './components/TechStack.vue'
 import GithubActivity from './components/GithubActivity.vue'
-import AboutSection from './components/AboutSection.vue'
+// import AboutSection from './components/AboutSection.vue'
 </script>
 
 <style scoped lang="scss"></style>
