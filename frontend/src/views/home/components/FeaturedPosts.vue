@@ -52,10 +52,6 @@
           <img class="cover" src="@/assets/img/home/cover.png" alt="技术插画型封面" />
           <div class="type">Frontend</div>
           <div class="title">Vue3 响应式原理深度解析</div>
-          <div class="summary">
-            深入理解 Vue3 的响应式系统,深入理解 Vue3 的响应式系统,深入理解 Vue3
-            的响应式系统,深入理解 Vue3 的响应式系统
-          </div>
           <div class="meta">
             <div class="date">发布于： 2026-08-20</div>
             <div class="read-time">预估阅读时间： 8 min</div>
@@ -65,10 +61,6 @@
           <img class="cover" src="@/assets/img/home/cover.png" alt="技术插画型封面" />
           <div class="type">Frontend</div>
           <div class="title">Vue3 响应式原理深度解析</div>
-          <div class="summary">
-            深入理解 Vue3 的响应式系统,深入理解 Vue3 的响应式系统,深入理解 Vue3
-            的响应式系统,深入理解 Vue3 的响应式系统
-          </div>
           <div class="meta">
             <div class="date">发布于： 2026-08-20</div>
             <div class="read-time">预估阅读时间： 8 min</div>
@@ -130,7 +122,7 @@ const handleClickAll = () => {
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       }
       .cover {
-        width: 100%;
+        height: 380px;
         object-fit: cover;
       }
       .type {
@@ -148,7 +140,7 @@ const handleClickAll = () => {
         color: var(--el-text-color-secondary);
         display: -webkit-box;
         -webkit-box-orient: vertical;
-        -webkit-line-clamp: 6; /* 最多显示 6 行 */
+        -webkit-line-clamp: 2; /* 最多显示 2 行 */
         overflow: hidden;
         text-overflow: ellipsis;
       }
@@ -179,7 +171,8 @@ const handleClickAll = () => {
           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
         .cover {
-          width: 100%;
+          height: 150px;
+          object-fit: cover;
         }
         .type {
           font-size: 18px;
@@ -190,14 +183,6 @@ const handleClickAll = () => {
           font-size: 20px;
           font-weight: bold;
           color: var(--el-text-color-primary);
-        }
-        .summary {
-          color: var(--el-text-color-secondary);
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2; /* 最多显示 2 行 */
-          overflow: hidden;
-          text-overflow: ellipsis;
         }
         .meta {
           display: flex;

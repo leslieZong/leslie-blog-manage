@@ -39,17 +39,17 @@ export default {
     },
     latestPosts: {
       title: '最新文章',
-      description: '查看最新发布的文章，了解最新的技术趋势、项目更新与行业动态。',
+      description: '最近发布的文章，记录持续进行中的技术实践与思考。',
       viewAll: '查看全部文章',
     },
     category: {
       title: '主题',
-      description: '探索我项目背后的技术与理念。',
+      description: '探索我正在关注和实践的技术领域。',
       viewAll: '查看全部主题',
     },
     project: {
       title: '项目',
-      description: '我开发与探索过的部分项目。',
+      description: '我开发与维护的项目。',
       viewAll: '查看全部项目',
     },
   },

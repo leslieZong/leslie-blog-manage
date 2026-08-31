@@ -13,22 +13,67 @@
       </div>
     </div>
     <div class="category-list">
-      <div class="category-item" v-for="(item, index) in 6" :key="index">
+      <div class="category-item" v-for="(item, index) in categories" :key="index">
         <div class="category-sort">{{ '0' + (index + 1) }}</div>
         <div class="category-content">
           <div class="category-info">
-            <div class="category-name">Frontend</div>
+            <div class="category-name">
+              <Icon :name="item.icon" size="20" class="link-icon" />
+              {{ item.name }}
+            </div>
             <div class="category-count">
-              10 <el-icon class="arrow-icon"><ArrowRightBold /></el-icon>
+              {{ item.count }} <el-icon class="arrow-icon"><ArrowRightBold /></el-icon>
             </div>
           </div>
-          <div class="category-description">Modern web interfaces, Vue, TypeScript & CSS</div>
+          <div class="category-description">{{ item.description }}</div>
         </div>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
+import { ref } from 'vue'
+import Icon from '@/components/icon/index.vue'
+
+const categories = ref([
+  {
+    name: 'Frontend',
+    count: 10,
+    description: 'Modern web development, Vue, TypeScript & CSS',
+    icon: 'frontend',
+  },
+  {
+    name: 'AI',
+    count: 5,
+    description: 'AI applications, agents and practical experiments',
+    icon: 'ai',
+  },
+  {
+    name: 'Engineering',
+    count: 8,
+    description: 'Architecture, patterns and engineering practices',
+    icon: 'engineering',
+  },
+  {
+    name: 'Backend',
+    count: 3,
+    description: 'Go services, APIs and backend engineering',
+    icon: 'backend',
+  },
+  {
+    name: 'Developer Tools ',
+    count: 2,
+    description: 'Tools and workflows that improve development',
+    icon: 'developerTools',
+  },
+  {
+    name: 'Notes',
+    count: 2,
+    description: 'Thoughts, learning notes and things worth sharing',
+    icon: 'notes',
+  },
+])
+
 // 点击查看所有
 const handleClickAll = () => {
   console.log('点击了查看所有')
@@ -62,7 +107,7 @@ const handleClickAll = () => {
   .category-list {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 4px;
     margin-top: 30px;
     .category-item {
       display: flex;
@@ -111,6 +156,9 @@ const handleClickAll = () => {
         align-items: center;
         gap: 6px;
         .category-name {
+          display: flex;
+          align-items: center;
+          gap: 4px;
           font-size: 18px;
           font-weight: bold;
         }

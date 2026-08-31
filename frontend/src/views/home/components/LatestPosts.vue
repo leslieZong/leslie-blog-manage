@@ -14,12 +14,10 @@
     </div>
     <div class="latest-posts-content">
       <div class="post-item" v-for="item in 5" :key="item">
-        <img class="cover" src="@/assets/img/home/cover.png" alt="技术插画型封面" />
+        <div class="sort">{{ '0' + item }}</div>
         <div class="post-info">
-          <div class="top">
-            <div class="type">Frontend</div>
-            <div class="title">Vue3 响应式原理深度解析</div>
-          </div>
+          <div class="type">Frontend</div>
+          <div class="title">Vue3 响应式原理深度解析</div>
           <div class="summary">
             深入理解 Vue3 深入理解 Vue3 的响应式系统,深入理解 Vue3 的响应式系统,深入理解 Vue3
             的响应式系统,深入理解 Vue3 的响应式系统, 深入理解 Vue3 的响应式系统,深入理解 Vue3
@@ -36,6 +34,9 @@
             <div class="date">发布于： 2026-08-20</div>
             <div class="read-time">预估阅读时间： 8 min</div>
           </div>
+        </div>
+        <div class="link-up">
+          <el-icon><ArrowRightBold /></el-icon>
         </div>
       </div>
     </div>
@@ -75,24 +76,28 @@ const handleClickAll = () => {
     margin-top: 30px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 4px;
     .post-item {
       padding: 20px;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 20px;
       cursor: pointer;
-      transition: transform 0.5s ease-in-out;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      border-radius: 10px;
-      background-color: var(--el-fill-color);
-      &:hover {
-        transform: scale(1.03);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      position: relative;
+      border-bottom: 1px solid var(--el-border-color);
+      transition: all 0.5s ease-in-out;
+      &:last-child {
+        border-bottom: none;
       }
-      .cover {
-        width: 100px;
-        object-fit: cover;
+      &:hover {
+        transform: translateX(4px);
+        .post-info .title {
+          color: var(--el-color-primary);
+        }
+        .link-up {
+          opacity: 1;
+          transform: translateX(4px);
+        }
       }
       .post-info {
         flex: 1;
@@ -101,18 +106,15 @@ const handleClickAll = () => {
         justify-content: flex-start;
         gap: 6px;
         overflow: hidden;
-        .top {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          .type {
-            font-weight: bold;
-            color: var(--el-color-primary);
-          }
-          .title {
-            font-weight: bold;
-            color: var(--el-text-color-primary);
-          }
+        .type {
+          font-size: 12px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .title {
+          font-size: 20px;
+          font-weight: bold;
+          color: var(--el-text-color-primary);
         }
         .summary {
           font-size: 16px;
@@ -128,6 +130,15 @@ const handleClickAll = () => {
           color: var(--el-text-color-secondary);
           font-size: 14px;
         }
+      }
+      .link-up {
+        opacity: 0;
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 14px;
+        color: var(--el-text-color-primary);
+        transition: all 0.5s ease-in-out;
       }
     }
   }

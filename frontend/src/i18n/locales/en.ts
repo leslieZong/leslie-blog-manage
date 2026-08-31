@@ -39,17 +39,17 @@ export default {
     },
     latestPosts:{
       title:'Latest Articles',
-      description:'Recent thoughts, experiments, and things I\'ve been learning.',
+      description:'Recent writings on frontend, AI, engineering and things I\'m currently exploring.',
       viewAll:'View all',
     },
     category:{
       title:'Topics',
-      description:'Explore the technologies and ideas behind my work.',
+      description:'Explore the topics I write about.',
       viewAll:'View all',
     },
     project:{
       title:'Projects',
-      description:'A selection of things I\'ve built and explored.',
+      description:'Selected projects I\'ve built and maintained.',
       viewAll:'View all',
     },
   }

@@ -53,6 +53,17 @@ const projectList = ref([
     live: 'Live Demo',
     github: 'GitHub',
   },
+  {
+    id: 2,
+    sort: '02',
+    name: 'LeslieTool',
+    desc: 'Personal tools for development and workflows.',
+    techStack: 'Vue 3 · TypeScript · Go · MySQL',
+    date: '2026',
+    status: 'Active',
+    live: 'Live Demo',
+    github: 'GitHub',
+  },
 ])
 </script>
 <style scoped lang="scss">
@@ -83,7 +94,7 @@ const projectList = ref([
   .project-list {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 4px;
     margin-top: 30px;
     .project-item {
       display: flex;
@@ -91,7 +102,6 @@ const projectList = ref([
       gap: 12px;
       overflow: hidden;
       padding: 12px;
-      background-color: linear-gradient(to right, #111, #666, #e5e5e5);
       border-bottom: 1px solid var(--el-border-color);
       cursor: pointer;
       transition: all 0.5s ease-in-out;
@@ -100,9 +110,9 @@ const projectList = ref([
       }
       &:hover {
         transform: translateX(4px);
-        background-color: var(--el-fill-color);
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        .project-name {
+          color: var(--el-color-primary);
+        }
       }
       .project-sort {
         width: 40px;
