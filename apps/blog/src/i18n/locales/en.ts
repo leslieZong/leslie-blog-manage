@@ -79,17 +79,14 @@ export default {
     },
   },
   footer: {
-    cta: {
-      title: 'Keep exploring.',
-      action: 'Read the latest posts',
-    },
-    brand: 'LESLIE ZHAO',
-    role: 'Frontend Engineer · Builder · Explorer',
+    title: 'Leslie Blog',
+    role: 'Building for the Web · Exploring AI',
     exploreTitle: 'Explore',
     connectTitle: 'Connect',
     nav: {
       home: 'Home',
-      blog: 'Blog',
+      articles: 'Articles',
+      categories: 'Categories',
       projects: 'Projects',
       about: 'About',
     },
@@ -100,7 +97,7 @@ export default {
       email: 'Email',
     },
     copyright: '© 2026 Leslie Zhao',
-    builtWith: 'Built with Vue 3',
+    builtWith: 'Built with Vue 3 and Go',
     backToTop: 'Back to top',
   },
 }

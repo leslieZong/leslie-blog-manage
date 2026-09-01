@@ -77,17 +77,14 @@ export default {
     },
   },
   footer: {
-    cta: {
-      title: '继续探索。',
-      action: '阅读最新文章',
-    },
-    brand: 'LESLIE ZHAO',
-    role: '前端工程师 · 开发者 · 探索者',
+    title: 'Leslie Blog',
+    role: '构建 Web，探索 AI',
     exploreTitle: '探索',
     connectTitle: '联系',
     nav: {
       home: '首页',
-      blog: '文章',
+      articles: '文章',
+      categories: '分类',
       projects: '项目',
       about: '关于',
     },
@@ -98,7 +95,7 @@ export default {
       email: '邮箱',
     },
     copyright: '© 2026 Leslie Zhao',
-    builtWith: '基于 Vue 3 构建',
+    builtWith: '基于 Vue 3 和 Go 构建',
     backToTop: '返回顶部',
   },
 }

@@ -4,29 +4,36 @@
   <footer class="footer">
     <!-- 主区域 -->
     <div class="footer-main">
-      <div class="footer-col">
-        <div class="col-label">{{ $t('footer.exploreTitle') }}</div>
-        <div class="col-links">
-          <div
-            class="link-item"
-            v-for="item in navList"
-            :key="item.path"
-            @click="handleNav(item.path)"
-          >
-            {{ item.label }}
+      <div class="footer-brand">
+        <img class="logo-img" src="@/assets/img/header/logo-light.png" alt="logo" />
+        <h2 class="title">{{ $t('footer.title') }}</h2>
+        <div>{{ $t('footer.role') }}</div>
+      </div>
+      <div class="footer-cols">
+        <div class="footer-col">
+          <div class="col-label">{{ $t('footer.exploreTitle') }}</div>
+          <div class="col-links">
+            <div
+              class="link-item"
+              v-for="item in navList"
+              :key="item.path"
+              @click="handleNav(item.path)"
+            >
+              {{ item.label }}
+            </div>
           </div>
         </div>
-      </div>
-      <div class="footer-col">
-        <div class="col-label">{{ $t('footer.connectTitle') }}</div>
-        <div class="col-links">
-          <div
-            class="link-item"
-            v-for="item in socialList"
-            :key="item.name"
-            @click="handleClick(item.link)"
-          >
-            {{ item.name }} <span class="arrow">↗</span>
+        <div class="footer-col">
+          <div class="col-label">{{ $t('footer.connectTitle') }}</div>
+          <div class="col-links">
+            <div
+              class="link-item"
+              v-for="item in socialList"
+              :key="item.name"
+              @click="handleClick(item.link)"
+            >
+              {{ item.name }} <span class="arrow">↗</span>
+            </div>
           </div>
         </div>
       </div>
@@ -35,9 +42,7 @@
     <!-- 底部栏 -->
     <div class="footer-bottom">
       <div class="copyright">{{ $t('footer.copyright') }}</div>
-      <div class="built-with" @click="handleClick('https://vuejs.org')">
-        {{ $t('footer.builtWith') }} ↗
-      </div>
+      <div class="built-with">{{ $t('footer.builtWith') }}</div>
       <div class="back-to-top" @click="handleBackToTop">{{ $t('footer.backToTop') }} ↑</div>
     </div>
   </footer>
@@ -53,7 +58,8 @@ const router = useRouter()
 
 const navList = computed(() => [
   { label: t('footer.nav.home'), path: '/' },
-  { label: t('footer.nav.blog'), path: '/article' },
+  { label: t('footer.nav.articles'), path: '/article' },
+  { label: t('footer.nav.categories'), path: '/category' },
   { label: t('footer.nav.projects'), path: '/project' },
   { label: t('footer.nav.about'), path: '/about' },
 ])
@@ -81,26 +87,42 @@ const handleBackToTop = () => {
 <style scoped lang="scss">
 .footer {
   margin-top: 40px;
+  padding-bottom: 40px;
 
   .footer-main {
     display: flex;
-    flex-direction: column;
     align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    .footer-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      .logo-img {
+        height: 40px;
+      }
+    }
+    .footer-cols {
+      display: flex;
+      gap: 60px;
+    }
     .footer-col {
       display: flex;
-      align-items: flex-start;
-      gap: 24px;
+      flex-direction: column;
+      gap: 12px;
       .col-label {
         font-weight: bold;
         letter-spacing: 0.1em;
         text-transform: uppercase;
         color: var(--el-text-color-secondary);
-        margin-bottom: 16px;
       }
       .col-links {
         display: flex;
-        align-items: flex-start;
-        gap: 30px;
+        flex-direction: column;
+        gap: 4px;
       }
       .link-item {
         cursor: pointer;
@@ -123,7 +145,6 @@ const handleBackToTop = () => {
     justify-content: space-between;
     font-size: 14px;
     color: var(--el-text-color-secondary);
-    .built-with,
     .back-to-top {
       cursor: pointer;
       transition: color 0.5s ease-in-out;
