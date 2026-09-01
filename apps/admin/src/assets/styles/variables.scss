@@ -1,0 +1,51 @@
+// variables.scss —— 后台管理主题色变量（与 blog 端保持同源风格）
+:root {
+  // 主色
+  --el-color-primary: #3b82f6;
+  --el-color-primary-light-1: #60a5fa;
+  --el-color-primary-light-2: #93c5fd;
+  --el-color-primary-light-3: #bfdbfe;
+  --el-color-primary-dark-1: #2563eb;
+
+  // 页面 / 组件背景
+  --el-bg-color-page: #f0f2f5;
+  --el-bg-color: #ffffff;
+  --el-bg-color-overlay: #ffffff;
+  --el-fill-color-blank: #ffffff;
+  --el-fill-color: #f5f7fa;
+
+  // 文字
+  --el-text-color-primary: #1d2129;
+  --el-text-color-regular: #4e5969;
+  --el-text-color-secondary: #86909c;
+  --el-text-color-placeholder: #c9cdd4;
+  --el-input-text-color: #1d2129;
+
+  // 边框
+  --el-border-color: #dcdfe6;
+  --el-border-color-light: #e5e6eb;
+
+  // 布局自定义变量
+  --admin-sidebar-width: 220px;
+  --admin-sidebar-collapsed-width: 64px;
+  --admin-header-height: 56px;
+}
+
+// 暗色模式
+html.dark {
+  --el-color-primary: #60a5fa;
+
+  --el-bg-color-page: #0f1419;
+  --el-bg-color: #1a1f29;
+  --el-bg-color-overlay: #1a1f29;
+  --el-fill-color-blank: #1a1f29;
+  --el-fill-color: #232936;
+
+  --el-text-color-primary: #e5e6eb;
+  --el-text-color-regular: #c9cdd4;
+  --el-text-color-secondary: #86909c;
+  --el-input-text-color: #e5e6eb;
+
+  --el-border-color: #2c3038;
+  --el-border-color-light: #232936;
+}

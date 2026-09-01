@@ -1,0 +1,36 @@
+# Leslie Blog 后端配置 —— 可被环境变量覆盖（前缀 LESLIE_，分隔符 _）
+app:
+  name: Leslie Blog
+  mode: debug            # debug / release
+  port: 8080
+  base_url: http://localhost:8080
+  upload_dir: ./uploads
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: ""
+  database: leslie_blog
+  charset: utf8mb4
+  max_idle_conns: 10
+  max_open_conns: 100
+  log_level: warn        # silent / error / warn / info
+
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  db: 0
+
+jwt:
+  secret: change-me-please
+  expire_sec: 604800     # 7 天
+  issuer: leslie-blog
+
+github:
+  username: ""           # 你的 GitHub 用户名
+  token: ""              # 可选：填入后提升 API 速率限制
+
+upload:
+  max_size_mb: 20
