@@ -6,23 +6,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterRoutes 注册 Auth 模块路由。
 func RegisterRoutes(
 	group *gin.RouterGroup,
 	authHandler *handler.AuthHandler,
+	jwtMiddleware gin.HandlerFunc,
 ) {
 
-	// POST /auth/login
+	// =========================================================
+	// 登录接口
 	//
-	// 因为上层 group 是：
+	// 登录的时候还没有 JWT。
 	//
-	// /api/admin/v1
-	//
-	// 所以最终完整路径：
-	//
-	// POST /api/admin/v1/auth/login
+	// 所以不能使用 JWT Middleware。
+	// =========================================================
+
 	group.POST(
 		"/auth/login",
 		authHandler.Login,
+	)
+
+	// =========================================================
+	// 当前用户接口
+	//
+	// /me 必须登录以后才能访问。
+	// =========================================================
+
+	group.GET(
+		"/auth/me",
+		jwtMiddleware,
+		authHandler.Me,
 	)
 }

@@ -79,6 +79,7 @@ func (r *Router) Register() {
 	auth.RegisterRoutes(
 		admin,
 		r.authHandler,
+		r.jwtMiddleware,
 	)
 
 	// --------------------------------------------------

@@ -4,26 +4,39 @@ import (
 	"net/http"
 
 	appErrors "leslie-blog-server/internal/errors"
+	"leslie-blog-server/internal/pkg/auth"
 	"leslie-blog-server/internal/pkg/casbin"
 	"leslie-blog-server/internal/response"
 
 	"github.com/gin-gonic/gin"
 )
 
-// Permission 创建权限检查 Middleware。
+// Permission 创建一个权限检查 Middleware。
 //
 // object 表示资源，例如：
 //
-// post
-// user
-// category
+//	user
+//	post
+//	category
 //
 // action 表示操作，例如：
 //
-// read
-// create
-// update
-// delete
+//	read
+//	create
+//	update
+//	delete
+//
+// 最终检查：
+//
+// 当前用户
+//
+//	↓
+//
+// 当前用户角色
+//
+//	↓
+//
+// 是否拥有 object + action 权限
 func Permission(
 	enforcer *casbin.Enforcer,
 	object string,
@@ -32,13 +45,14 @@ func Permission(
 
 	return func(c *gin.Context) {
 
-		// ==================================================
-		// 1. 获取 JWT Middleware 设置的 userID
-		// ==================================================
+		// =========================================================
+		// 第一步：获取当前登录用户 ID
+		// =========================================================
 
-		userIDValue, exists := c.Get("userID")
+		userID := auth.GetUserID(c)
 
-		if !exists {
+		if userID == "" {
+
 			response.Error(
 				c,
 				http.StatusUnauthorized,
@@ -47,38 +61,27 @@ func Permission(
 			)
 
 			c.Abort()
+
 			return
 		}
 
-		// ==================================================
-		// 2. 类型断言
-		// ==================================================
+		// =========================================================
+		// 第二步：让 Casbin 判断权限
 		//
-		// c.Get() 返回的是 any。
+		// Enforce(
+		//     谁,
+		//     什么资源,
+		//     什么操作,
+		// )
 		//
-		// 我们知道 JWT Middleware 放进去的是 string。
+		// 例如：
 		//
-		// 所以需要：
-		//
-		// userID, ok := userIDValue.(string)
-
-		userID, ok := userIDValue.(string)
-
-		if !ok || userID == "" {
-			response.Error(
-				c,
-				http.StatusUnauthorized,
-				appErrors.ErrUnauthorized,
-				"invalid user identity",
-			)
-
-			c.Abort()
-			return
-		}
-
-		// ==================================================
-		// 3. 调用 Casbin
-		// ==================================================
+		// Enforce(
+		//     "01KABC...",
+		//     "user",
+		//     "read",
+		// )
+		// =========================================================
 
 		allowed, err := enforcer.Enforce(
 			userID,
@@ -88,7 +91,6 @@ func Permission(
 
 		if err != nil {
 
-			// Casbin 自身发生异常。
 			response.Error(
 				c,
 				http.StatusInternalServerError,
@@ -97,12 +99,13 @@ func Permission(
 			)
 
 			c.Abort()
+
 			return
 		}
 
-		// ==================================================
-		// 4. 权限不足
-		// ==================================================
+		// =========================================================
+		// 第三步：没有权限
+		// =========================================================
 
 		if !allowed {
 
@@ -114,12 +117,13 @@ func Permission(
 			)
 
 			c.Abort()
+
 			return
 		}
 
-		// ==================================================
-		// 5. 权限通过
-		// ==================================================
+		// =========================================================
+		// 第四步：权限验证成功
+		// =========================================================
 
 		c.Next()
 	}

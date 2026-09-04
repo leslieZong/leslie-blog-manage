@@ -94,7 +94,7 @@ func New(cfg *config.Config) (*Server, error) {
 	// 8. 创建 Auth Handler
 	// ==================================================
 
-	authH := handler.NewAuthHandler(authSvc)
+	authH := handler.NewAuthHandler(authSvc, userSvc)
 
 	// ==================================================
 	// 9. 创建 JWT Middleware

@@ -4,82 +4,73 @@ import (
 	"net/http"
 	"strings"
 
-	"leslie-blog-server/internal/errors"
+	appErrors "leslie-blog-server/internal/errors"
+	"leslie-blog-server/internal/pkg/auth"
 	"leslie-blog-server/internal/pkg/jwt"
 	"leslie-blog-server/internal/response"
 
 	"github.com/gin-gonic/gin"
 )
 
-// JWT 创建一个 JWT 认证中间件。
+// JWT 是 JWT 身份认证 Middleware。
 //
-// secret 是生成 JWT 时使用的密钥。
-// Middleware 在收到请求之后，会使用同一个 secret
-// 验证客户端提交过来的 JWT。
+// 它负责：
+//
+// 1. 获取 Authorization 请求头
+// 2. 提取 Bearer Token
+// 3. 解析 JWT
+// 4. 验证 Token 是否有效
+// 5. 获取当前用户身份
+// 6. 把用户身份保存到 Gin Context
+//
+// 注意：
+//
+// JWT Middleware 只负责“你是谁”。
+//
+// 它不负责判断：
+//
+// “你能不能删除文章？”
+//
+// 权限判断由后面的 Permission Middleware + Casbin 完成。
 func JWT(secret string) gin.HandlerFunc {
 
-	// gin.HandlerFunc 本质上就是一个函数类型：
-	//
-	// func(c *gin.Context)
-	//
-	// 也就是说：
-	//
-	// JWT(secret)
-	//     ↓
-	// 返回一个函数
-	//     ↓
-	// Gin 在请求到达时执行这个函数
 	return func(c *gin.Context) {
 
-		// ==================================================
-		// 第一步：获取 Authorization Header
-		// ==================================================
-		//
-		// 前端请求应该类似：
-		//
-		// Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
-		//
-		// c.GetHeader() 用来读取 HTTP Header。
-		authHeader := c.GetHeader("Authorization")
+		// =========================================================
+		// 第一步：获取 Authorization 请求头
+		// =========================================================
 
-		// 如果没有 Authorization Header，
-		// 说明客户端没有提供 Token。
-		if authHeader == "" {
+		authorization := c.GetHeader("Authorization")
+
+		if authorization == "" {
+
 			response.Error(
 				c,
 				http.StatusUnauthorized,
-				errors.ErrUnauthorized,
+				appErrors.ErrUnauthorized,
 				"authorization header is required",
 			)
 
-			// Abort 非常重要。
-			//
-			// 它表示：
-			//
-			// “请求到这里就停止，不允许继续执行后面的 Handler。”
+			// Abort 表示终止当前请求继续向后执行。
 			c.Abort()
 
 			return
 		}
 
-		// ==================================================
+		// =========================================================
 		// 第二步：检查 Bearer 格式
-		// ==================================================
 		//
-		// 我们要求：
+		// HTTP 请求通常：
 		//
-		// Authorization: Bearer <token>
-		//
-		// 所以 Header 必须以：
-		//
-		// "Bearer "
-		//
-		// 开头。
-		if !strings.HasPrefix(authHeader, "Bearer ") {
+		// Authorization: Bearer xxxxx
+		// =========================================================
+
+		if !strings.HasPrefix(authorization, "Bearer ") {
+
 			response.Error(
 				c,
 				http.StatusUnauthorized,
-				errors.ErrUnauthorized,
+				appErrors.ErrUnauthorized,
 				"invalid authorization header",
 			)
 
@@ -88,27 +79,21 @@ func JWT(secret string) gin.HandlerFunc {
 			return
 		}
 
-		// ==================================================
+		// =========================================================
 		// 第三步：提取真正的 JWT Token
-		// ==================================================
-		//
-		// authHeader：
-		//
-		// Bearer eyJhbGciOiJIUzI1NiIs...
-		//
-		// TrimPrefix 后：
-		//
-		// eyJhbGciOiJIUzI1NiIs...
+		// =========================================================
+
 		tokenString := strings.TrimPrefix(
-			authHeader,
+			authorization,
 			"Bearer ",
 		)
 
 		if tokenString == "" {
+
 			response.Error(
 				c,
 				http.StatusUnauthorized,
-				errors.ErrUnauthorized,
+				appErrors.ErrUnauthorized,
 				"token is required",
 			)
 
@@ -117,26 +102,21 @@ func JWT(secret string) gin.HandlerFunc {
 			return
 		}
 
-		// ==================================================
+		// =========================================================
 		// 第四步：解析 JWT
-		// ==================================================
-		//
-		// Parse 会检查：
-		//
-		// 1. JWT 格式
-		// 2. 签名
-		// 3. Token 是否过期
-		// 4. Claims 是否能够正确解析
+		// =========================================================
+
 		claims, err := jwt.Parse(
 			tokenString,
 			secret,
 		)
 
 		if err != nil {
+
 			response.Error(
 				c,
 				http.StatusUnauthorized,
-				errors.ErrUnauthorized,
+				appErrors.ErrUnauthorized,
 				"invalid or expired token",
 			)
 
@@ -145,30 +125,36 @@ func JWT(secret string) gin.HandlerFunc {
 			return
 		}
 
-		// ==================================================
-		// 第五步：把登录用户信息放进 Gin Context
-		// ==================================================
+		// =========================================================
+		// 第五步：把当前用户身份保存到 Gin Context
+		// =========================================================
 		//
-		// claims 中已经有：
+		// 后面的 Handler 可以通过：
 		//
-		// UserID
-		// Username
+		// auth.GetUserID(c)
 		//
-		// 我们把它们保存下来。
+		// 获取用户 ID。
 		//
-		// 后面的 Handler / Service 就可以读取。
-		c.Set("userID", claims.UserID)
-		c.Set("username", claims.Username)
 
-		// ==================================================
-		// 第六步：继续执行后面的 Handler
-		// ==================================================
+		c.Set(
+			auth.ContextKeyUserID,
+			claims.UserID,
+		)
+
+		c.Set(
+			auth.ContextKeyUsername,
+			claims.Username,
+		)
+
+		// =========================================================
+		// 第六步：认证成功
 		//
-		// 到这里说明：
+		// c.Next() 表示：
 		//
-		// JWT 验证通过。
-		//
-		// 所以允许请求继续执行。
+		// “JWT Middleware 已经处理完毕，
+		// 继续执行后面的 Middleware / Handler。”
+		// =========================================================
+
 		c.Next()
 	}
 }
