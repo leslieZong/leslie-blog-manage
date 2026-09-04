@@ -1,7 +1,7 @@
 server:
   name: leslie-blog-server
   host: 0.0.0.0
-  port: 8081
+  port: 8080
   mode: debug
 
 # MySQL 数据库配置
