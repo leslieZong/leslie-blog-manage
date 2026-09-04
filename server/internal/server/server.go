@@ -6,6 +6,8 @@ import (
 	"leslie-blog-server/internal/config"
 	"leslie-blog-server/internal/database"
 	"leslie-blog-server/internal/middleware"
+	authHandler "leslie-blog-server/internal/modules/auth/handler"
+	authService "leslie-blog-server/internal/modules/auth/service"
 	"leslie-blog-server/internal/modules/user/handler"
 	userRepository "leslie-blog-server/internal/modules/user/repository"
 	userService "leslie-blog-server/internal/modules/user/service"
@@ -122,9 +124,22 @@ func New(cfg *config.Config) (*Server, error) {
 	//	userH
 	//	  ↓
 	//	Router
+
+	authSvc := authService.NewAuthService(
+		userRepo,
+		cfg.JWT.Secret,
+		cfg.JWT.Issuer,
+		cfg.JWT.ExpireHours,
+	)
+
+	// ----------------------------------------
+	// 创建 Auth Handler
+	// ----------------------------------------
+	authH := authHandler.NewAuthHandler(authSvc)
 	r := router.New(
 		engine,
 		userH,
+		authH,
 	)
 
 	// ----------------------------------------

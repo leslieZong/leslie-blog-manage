@@ -39,3 +39,9 @@ mysql:
 
   # 单个数据库连接最大存活时间
   conn_max_lifetime: "1h"
+
+
+jwt:
+  secret: "please-change-this-secret"
+  issuer: "leslie-blog"
+  expire_hours: 24
