@@ -1,40 +1,141 @@
-go-enterprise/
-├── cmd
-│   └── api                # 程序入口
-│       └── main.go
-├── internal               # 业务私有代码，外部无法导入
-│   ├── api                # handler 控制器层
-│   │   ├── handler.go
-│   │   └── user.go
-│   ├── service            # 业务逻辑层
-│   │   └── user_service.go
-│   ├── repository         # 数据访问层 DB操作
-│   │   └── user_repo.go
-│   ├── model              # 数据模型：数据库model、请求/响应DTO
-│   │   ├── dto
-│   │   │   └── user_dto.go
-│   │   └── entity
-│   │       └── user.go
-│   └── middleware         # 内部中间件 jwt、auth、限流、日志
-│       ├── jwt.go
-│       ├── logger.go
-│       └── cors.go
-├── pkg                    # 公共可复用包，可以外部引用
-│   ├── config             # viper配置解析
-│   ├── db                 # mysql gorm初始化
-│   ├── redis              # redis初始化
-│   ├── logger             # zap日志封装
-│   ├── jwt                # jwt工具
-│   ├── response           # 统一返回封装
-│   ├── validator          # 参数校验
-│   └── utils              # 工具函数
-├── configs                # 配置文件 yaml
-│   └── app.yaml
-├── scripts                # 脚本：sql、shell、docker
-│   └── init.sql
-├── api                    # openapi swagger文档
-├── test                   # 单元测试
+leslie-blog-server/
+│
+├── cmd/
+│   ├── api/
+│   │   └── main.go // API 服务入口
+│   │
+│   └── worker/
+│       └── main.go // 工作进程入口
+│
+├── internal/
+│   │
+│   ├── config/
+│   │   └── config.go // 配置文件
+│   │
+│   ├── server/
+│   │   └── server.go // 服务入口
+│   │
+│   ├── middleware/
+│   │   ├── cors.go // 跨域中间件
+│   │   ├── jwt.go // JWT 中间件
+│   │   ├── logger.go // 日志中间件
+│   │   ├── recovery.go // 异常恢复中间件
+│   │   └── permission.go // 权限中间件
+│   │
+│   ├── router/
+│   │   └── router.go // 路由配置
+│   │
+│   ├── database/
+│   │   ├── mysql.go // MySQL 数据库配置
+│   │   └── redis.go // Redis 数据库配置
+│   │
+│   ├── logger/
+│   │   └── logger.go // 日志配置文件
+│   │
+│   ├── response/
+│   │   └── response.go // 响应配置文件
+│   │
+│   ├── errors/
+│   │   └── errors.go // 错误配置文件
+│   │
+│   ├── pkg/
+│   │   ├── jwt/ // JWT 相关配置
+│   │   ├── password/ // 密码相关配置
+│   │   ├── ulid/ // ULID 相关配置
+│   │   ├── validator/ // 验证相关配置
+│   │   └── pagination/ // 分页相关配置
+│   │
+│   └── modules/
+│       │
+│       ├── auth/
+│       │   ├── handler/ // 认证模块路由处理函数
+│       │   ├── service/ // 认证模块服务层
+│       │   ├── repository/ // 认证模块数据访问层
+│       │   ├── model/ // 认证模块模型层
+│       │   ├── dto/ // 认证模块数据传输对象层
+│       │   └── routes.go // 认证模块路由配置
+│       │
+│       ├── user/
+│       │   ├── handler/
+│       │   ├── service/
+│       │   ├── repository/
+│       │   ├── model/
+│       │   ├── dto/
+│       │   └── routes.go
+│       │
+│       ├── post/
+│       │   ├── handler/
+│       │   ├── service/
+│       │   ├── repository/
+│       │   ├── model/
+│       │   ├── dto/
+│       │   └── routes.go
+│       │
+│       ├── category/
+│       │   ├── handler/
+│       │   ├── service/
+│       │   ├── repository/
+│       │   ├── model/
+│       │   ├── dto/
+│       │   └── routes.go
+│       │
+│       ├── tag/
+│       │   ├── handler/
+│       │   ├── service/
+│       │   ├── repository/
+│       │   ├── model/
+│       │   ├── dto/
+│       │   └── routes.go
+│       │
+│       ├── comment/
+│       │   ├── handler/
+│       │   ├── service/
+│       │   ├── repository/
+│       │   ├── model/
+│       │   ├── dto/
+│       │   └── routes.go
+│       │
+│       ├── project/
+│       │   ├── handler/
+│       │   ├── service/
+│       │   ├── repository/
+│       │   ├── model/
+│       │   ├── dto/
+│       │   └── routes.go
+│       │
+│       └── dashboard/
+│           ├── handler/
+│           ├── service/
+│           ├── repository/
+│           ├── dto/
+│           └── routes.go
+│
+├── migrations/
+│   ├── 000001_create_users.up.sql
+│   ├── 000001_create_users.down.sql
+│   ├── 000002_create_posts.up.sql
+│   └── ...
+│
+├── configs/
+│   ├── config.yaml
+│   ├── config.local.yaml
+│   └── config.prod.yaml
+│
+├── docs/
+│   └── swagger/
+│
+├── scripts/
+│   ├── dev.sh
+│   └── migrate.sh
+│
+├── deployments/
+│   ├── Dockerfile
+│   └── docker-compose.yml
+│
+├── .env
+├── .env.example
+├── .gitignore
 ├── go.mod
 ├── go.sum
-├── .gitignore
-└── Dockerfile
+├── Makefile
+└── README.md
