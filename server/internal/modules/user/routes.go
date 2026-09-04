@@ -6,20 +6,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterRoutes 注册 User 模块路由。
+// RegisterRoutes 注册 User 模块的 HTTP 路由。
 //
-// 这里负责的是：
+// group 是上层 Router 创建好的路由分组。
 //
-// URL
-// ↓
-// Handler
+// 例如：
 //
-// 它不负责：
+//	/api/admin/v1
 //
-// 数据库
-// 业务逻辑
-// JWT
-// SQL
+// userHandler 是 User 模块的 Handler。
 func RegisterRoutes(
 	group *gin.RouterGroup,
 	userHandler *handler.UserHandler,
@@ -27,9 +22,9 @@ func RegisterRoutes(
 
 	// GET /users/:id
 	//
-	// 最终映射到：
+	// 最终完整路径：
 	//
-	// UserHandler.GetByID
+	// GET /api/admin/v1/users/:id
 	group.GET(
 		"/users/:id",
 		userHandler.GetByID,
