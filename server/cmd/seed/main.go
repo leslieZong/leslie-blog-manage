@@ -6,6 +6,7 @@ import (
 	"leslie-blog-server/internal/config"
 	"leslie-blog-server/internal/database"
 	"leslie-blog-server/internal/modules/user/model"
+	"leslie-blog-server/internal/pkg/casbin"
 	"leslie-blog-server/internal/pkg/password"
 	"leslie-blog-server/internal/pkg/ulid"
 
@@ -14,19 +15,8 @@ import (
 
 func main() {
 
-	// ----------------------------------------
-	// 1. 加载项目配置
-	// ----------------------------------------
-	//
-	// 和 API Server 一样，
-	// Seed 也需要知道：
-	//
-	// MySQL 在哪里？
-	// 数据库叫什么？
-	// 用户名是什么？
-	// 密码是什么？
+	// 1. 加载配置。
 	cfg, err := config.Load()
-
 	if err != nil {
 		log.Fatalf(
 			"load config failed: %v",
@@ -34,13 +24,8 @@ func main() {
 		)
 	}
 
-	// ----------------------------------------
-	// 2. 创建数据库连接
-	// ----------------------------------------
-	db, err := database.NewMySQL(
-		cfg.MySQL,
-	)
-
+	// 2. 连接 MySQL。
+	db, err := database.NewMySQL(cfg.MySQL)
 	if err != nil {
 		log.Fatalf(
 			"connect mysql failed: %v",
@@ -48,31 +33,35 @@ func main() {
 		)
 	}
 
-	// ----------------------------------------
-	// 3. 获取底层 *sql.DB
-	// ----------------------------------------
-	//
-	// GORM 是对 database/sql 的封装。
-	//
-	// 程序结束时，
-	// 我们应该关闭数据库连接池。
-	sqlDB, err := db.DB()
+	// 3. 初始化 Casbin。
+	enforcer, err := casbin.New(
+		db,
+		"./configs/casbin_model.conf",
+	)
 
 	if err != nil {
 		log.Fatalf(
-			"get sql db failed: %v",
+			"create casbin failed: %v",
 			err,
 		)
 	}
 
-	defer sqlDB.Close()
-
-	// ----------------------------------------
-	// 4. 创建管理员
-	// ----------------------------------------
-	if err := seedAdmin(db); err != nil {
+	// 4. 创建 Admin 用户。
+	adminUser, err := seedAdmin(db)
+	if err != nil {
 		log.Fatalf(
 			"seed admin failed: %v",
+			err,
+		)
+	}
+
+	// 5. 初始化 Admin 权限。
+	if err := seedCasbin(
+		enforcer,
+		adminUser.ID,
+	); err != nil {
+		log.Fatalf(
+			"seed casbin failed: %v",
 			err,
 		)
 	}
@@ -80,27 +69,14 @@ func main() {
 	log.Println("seed completed")
 }
 
-// seedAdmin 创建默认管理员账号。
-func seedAdmin(db *gorm.DB) error {
+// seedAdmin 创建或获取 admin 用户。
+func seedAdmin(
+	db *gorm.DB,
+) (*model.User, error) {
 
-	// ----------------------------------------
-	// 1. 定义初始管理员账号
-	// ----------------------------------------
-	//
-	// 开发阶段我们暂时使用：
-	//
-	// username: admin
-	// password: 123456
-	//
-	// 注意：
-	//
-	// 真实生产环境不能使用这种弱密码。
 	username := "admin"
 	plainPassword := "123456"
 
-	// ----------------------------------------
-	// 2. 检查管理员是否已经存在
-	// ----------------------------------------
 	var existingUser model.User
 
 	err := db.
@@ -109,74 +85,37 @@ func seedAdmin(db *gorm.DB) error {
 		Error
 
 	if err == nil {
-
-		// 用户已经存在。
-		//
-		// Seed 应该尽可能做到幂等。
-		//
-		// 什么叫幂等？
-		//
-		// 第一次执行：
-		//
-		// 创建 admin
-		//
-		// 第二次执行：
-		//
-		// 不应该再创建一个 admin。
 		log.Printf(
 			"user %q already exists, skip",
 			username,
 		)
 
-		return nil
+		return &existingUser, nil
 	}
 
-	// 如果不是“记录不存在”，
-	// 那就说明数据库查询真正发生了错误。
 	if err != gorm.ErrRecordNotFound {
-		return err
+		return nil, err
 	}
 
-	// ----------------------------------------
-	// 3. 对管理员密码进行 Hash
-	// ----------------------------------------
 	passwordHash, err := password.Hash(
 		plainPassword,
 	)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// ----------------------------------------
-	// 4. 创建 User Model
-	// ----------------------------------------
 	user := &model.User{
-		// 使用 ULID 作为用户 ID。
-		ID: ulid.New(),
-
-		// 登录用户名。
-		Username: username,
-
-		// 保存 bcrypt Hash，
-		// 绝对不能保存 plainPassword。
+		ID:           ulid.New(),
+		Username:     username,
 		PasswordHash: passwordHash,
-
-		// 管理员显示名称。
-		DisplayName: "Administrator",
-
-		// 暂时没有头像。
-		AvatarURL: "",
-
-		// 1 表示正常状态。
-		Status: 1,
+		DisplayName:  "Administrator",
+		AvatarURL:    "",
+		Status:       1,
 	}
 
-	// ----------------------------------------
-	// 5. 写入数据库
-	// ----------------------------------------
 	if err := db.Create(user).Error; err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Printf(
@@ -184,5 +123,5 @@ func seedAdmin(db *gorm.DB) error {
 		user.Username,
 	)
 
-	return nil
+	return user, nil
 }

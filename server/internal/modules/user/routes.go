@@ -1,32 +1,44 @@
 package user
 
 import (
+	"leslie-blog-server/internal/middleware"
 	"leslie-blog-server/internal/modules/user/handler"
+	"leslie-blog-server/internal/pkg/casbin"
 
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterRoutes 注册 User 模块的 HTTP 路由。
-//
-// group 是上层 Router 创建好的路由分组。
-//
-// 例如：
-//
-//	/api/admin/v1
-//
-// userHandler 是 User 模块的 Handler。
+// RegisterRoutes 注册 User 模块路由。
 func RegisterRoutes(
 	group *gin.RouterGroup,
 	userHandler *handler.UserHandler,
+	enforcer *casbin.Enforcer,
 ) {
 
+	// ==================================================
+	// 获取用户详情
+	// ==================================================
+	//
+	// 请求：
+	//
 	// GET /users/:id
 	//
-	// 最终完整路径：
+	// 需要：
 	//
-	// GET /api/admin/v1/users/:id
+	// JWT
+	// +
+	// user:read
 	group.GET(
 		"/users/:id",
+
+		// 权限 Middleware。
+		middleware.Permission(
+			enforcer,
+			"user",
+			"read",
+		),
+
+		// 真正的业务 Handler。
 		userHandler.GetByID,
 	)
 }

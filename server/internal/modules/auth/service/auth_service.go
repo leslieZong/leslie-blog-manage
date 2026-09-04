@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/auth/dto"
 	"leslie-blog-server/internal/modules/user/repository"
 	"leslie-blog-server/internal/pkg/jwt"
@@ -13,43 +14,26 @@ import (
 	"gorm.io/gorm"
 )
 
-// AuthService 定义认证相关业务。
 type AuthService interface {
-
-	// Login 执行用户登录。
 	Login(
 		ctx context.Context,
 		req *dto.LoginRequest,
 	) (*dto.LoginResponse, error)
 }
 
-// authService 是 AuthService 的具体实现。
 type authService struct {
-
-	// userRepo 用于查询用户。
-	//
-	// Auth 不需要自己实现用户查询，
-	// 直接复用 UserRepository。
-	userRepo repository.UserRepository
-
-	// jwtSecret 是 JWT 签名密钥。
-	jwtSecret string
-
-	// jwtIssuer 是 JWT 签发者。
-	jwtIssuer string
-
-	// jwtExpireHours 是 Token 有效时间。
+	userRepo       repository.UserRepository
+	jwtSecret      string
+	jwtIssuer      string
 	jwtExpireHours int
 }
 
-// NewAuthService 创建 AuthService。
 func NewAuthService(
 	userRepo repository.UserRepository,
 	jwtSecret string,
 	jwtIssuer string,
 	jwtExpireHours int,
 ) AuthService {
-
 	return &authService{
 		userRepo:       userRepo,
 		jwtSecret:      jwtSecret,
@@ -58,31 +42,43 @@ func NewAuthService(
 	}
 }
 
-// Login 执行登录业务。
+// Login 用户登录。
 func (s *authService) Login(
 	ctx context.Context,
 	req *dto.LoginRequest,
 ) (*dto.LoginResponse, error) {
 
-	// ----------------------------------------
+	// ==================================================
 	// 1. 参数校验
-	// ----------------------------------------
+	// ==================================================
 
 	if req == nil {
-		return nil, errors.New("login request cannot be nil")
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			400,
+			"login request cannot be nil",
+		)
 	}
 
 	if req.Username == "" {
-		return nil, errors.New("username cannot be empty")
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			400,
+			"username cannot be empty",
+		)
 	}
 
 	if req.Password == "" {
-		return nil, errors.New("password cannot be empty")
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			400,
+			"password cannot be empty",
+		)
 	}
 
-	// ----------------------------------------
-	// 2. 根据 username 查询用户
-	// ----------------------------------------
+	// ==================================================
+	// 2. 查询用户
+	// ==================================================
 
 	user, err := s.userRepo.FindByUsername(
 		ctx,
@@ -91,57 +87,56 @@ func (s *authService) Login(
 
 	if err != nil {
 
-		// 用户不存在。
-		//
-		// 对登录接口来说，
-		// “用户名不存在”和“密码错误”
-		// 最终都应该表现成登录失败。
+		// 为了避免用户名枚举，
+		// “用户不存在”和“密码错误”
+		// 对外统一返回认证失败。
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("invalid username or password")
+			return nil, appErrors.New(
+				appErrors.ErrInvalidCredentials,
+				401,
+				"invalid username or password",
+			)
 		}
 
-		// 数据库真正发生异常。
-		return nil, err
+		// 真正的数据库错误不能伪装成 401。
+		return nil, appErrors.Wrap(
+			appErrors.ErrInternalServer,
+			500,
+			"failed to find user",
+			err,
+		)
 	}
 
-	// ----------------------------------------
+	// ==================================================
 	// 3. 检查用户状态
-	// ----------------------------------------
+	// ==================================================
 
-	// 我们之前 users 表设计了：
-	//
-	// status = 1 → 正常
-	// status = 0 → 禁用
-	//
-	// 如果账号被禁用，
-	// 即使密码正确也不能登录。
 	if user.Status != 1 {
-		return nil, errors.New("user is disabled")
+		return nil, appErrors.New(
+			appErrors.ErrUserDisabled,
+			403,
+			"user is disabled",
+		)
 	}
 
-	// ----------------------------------------
+	// ==================================================
 	// 4. 验证密码
-	// ----------------------------------------
+	// ==================================================
 
-	// 注意这里：
-	//
-	// 第一个参数：
-	// 数据库里的 password_hash
-	//
-	// 第二个参数：
-	// 用户刚刚输入的明文 password
 	if !password.Compare(
 		user.PasswordHash,
 		req.Password,
 	) {
-		return nil, errors.New(
+		return nil, appErrors.New(
+			appErrors.ErrInvalidCredentials,
+			401,
 			"invalid username or password",
 		)
 	}
 
-	// ----------------------------------------
+	// ==================================================
 	// 5. 生成 JWT
-	// ----------------------------------------
+	// ==================================================
 
 	accessToken, err := jwt.Generate(
 		user.ID,
@@ -152,21 +147,27 @@ func (s *authService) Login(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, appErrors.Wrap(
+			appErrors.ErrInternalServer,
+			500,
+			"failed to generate access token",
+			err,
+		)
 	}
 
-	// ----------------------------------------
-	// 6. 计算 Token 有效时间
-	// ----------------------------------------
+	// ==================================================
+	// 6. 计算 Token 有效秒数
+	// ==================================================
 
 	expiresIn := int64(
-		time.Duration(s.jwtExpireHours) * time.Hour /
+		time.Duration(s.jwtExpireHours) *
+			time.Hour /
 			time.Second,
 	)
 
-	// ----------------------------------------
+	// ==================================================
 	// 7. 返回登录结果
-	// ----------------------------------------
+	// ==================================================
 
 	return &dto.LoginResponse{
 		AccessToken: accessToken,

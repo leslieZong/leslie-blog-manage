@@ -6,124 +6,82 @@ import (
 	"leslie-blog-server/internal/config"
 	"leslie-blog-server/internal/database"
 	"leslie-blog-server/internal/middleware"
-	authHandler "leslie-blog-server/internal/modules/auth/handler"
+	"leslie-blog-server/internal/modules/auth/handler"
 	authService "leslie-blog-server/internal/modules/auth/service"
-	"leslie-blog-server/internal/modules/user/handler"
+	userHandler "leslie-blog-server/internal/modules/user/handler"
 	userRepository "leslie-blog-server/internal/modules/user/repository"
 	userService "leslie-blog-server/internal/modules/user/service"
+	"leslie-blog-server/internal/pkg/casbin"
 	"leslie-blog-server/internal/router"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-// Server 表示整个 Leslie Blog API Server。
-//
-// Server 的核心职责不是处理具体业务，
-// 而是把整个应用需要的组件组装起来。
+// Server 表示 Leslie Blog API Server。
 type Server struct {
-	// cfg 保存整个项目的配置。
-	cfg *config.Config
-
-	// engine 是 Gin HTTP Server。
+	cfg    *config.Config
 	engine *gin.Engine
-
-	// router 管理所有 HTTP 路由。
 	router *router.Router
-
-	// db 是 GORM 数据库连接。
-	//
-	// 后续其他 Repository 都会依赖它。
-	db *gorm.DB
+	db     *gorm.DB
 }
 
-// New 创建并初始化 Server。
-//
-// 这个函数是整个应用的“依赖注入入口”。
-//
-// 可以理解成：
-//
-//	config
-//	   ↓
-//	database
-//	   ↓
-//	repository
-//	   ↓
-//	service
-//	   ↓
-//	handler
-//	   ↓
-//	router
-//
-// 最终组装成一个可以运行的 Server。
+// New 创建 Server。
 func New(cfg *config.Config) (*Server, error) {
 
-	// ----------------------------------------
-	// 1. 创建 MySQL 数据库连接
-	// ----------------------------------------
+	// ==================================================
+	// 1. 创建 MySQL 连接
+	// ==================================================
+
 	db, err := database.NewMySQL(cfg.MySQL)
+	if err != nil {
+		return nil, err
+	}
+	enforcer, err := casbin.New(
+		db,
+		"./configs/casbin_model.conf",
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	// ----------------------------------------
+	// ==================================================
 	// 2. 创建 Gin Engine
-	// ----------------------------------------
+	// ==================================================
+
 	engine := gin.New()
 
-	// ----------------------------------------
+	// ==================================================
 	// 3. 注册全局 Middleware
-	// ----------------------------------------
+	// ==================================================
+
 	engine.Use(
 		middleware.Logger(),
 		middleware.Recovery(),
 	)
 
-	// ----------------------------------------
+	// ==================================================
 	// 4. 创建 User Repository
-	// ----------------------------------------
-	//
-	// Repository 依赖数据库。
-	//
-	// 所以：
-	//
-	//	db
-	//	 ↓
-	//	UserRepository
+	// ==================================================
+
 	userRepo := userRepository.NewUserRepository(db)
 
-	// ----------------------------------------
+	// ==================================================
 	// 5. 创建 User Service
-	// ----------------------------------------
-	//
-	// Service 依赖 Repository。
-	//
-	//	userRepo
-	//	   ↓
-	//	UserService
+	// ==================================================
+
 	userSvc := userService.NewUserService(userRepo)
 
-	// ----------------------------------------
+	// ==================================================
 	// 6. 创建 User Handler
-	// ----------------------------------------
-	//
-	// Handler 依赖 Service。
-	//
-	//	userSvc
-	//	   ↓
-	//	UserHandler
-	userH := handler.NewUserHandler(userSvc)
+	// ==================================================
 
-	// ----------------------------------------
-	// 7. 创建 Router
-	// ----------------------------------------
-	//
-	// Router 依赖 User Handler。
-	//
-	//	userH
-	//	  ↓
-	//	Router
+	userH := userHandler.NewUserHandler(userSvc)
+
+	// ==================================================
+	// 7. 创建 Auth Service
+	// ==================================================
 
 	authSvc := authService.NewAuthService(
 		userRepo,
@@ -132,19 +90,49 @@ func New(cfg *config.Config) (*Server, error) {
 		cfg.JWT.ExpireHours,
 	)
 
-	// ----------------------------------------
-	// 创建 Auth Handler
-	// ----------------------------------------
-	authH := authHandler.NewAuthHandler(authSvc)
+	// ==================================================
+	// 8. 创建 Auth Handler
+	// ==================================================
+
+	authH := handler.NewAuthHandler(authSvc)
+
+	// ==================================================
+	// 9. 创建 JWT Middleware
+	// ==================================================
+	//
+	// 注意：
+	//
+	// JWT Middleware 需要和 JWT Generate 使用相同的 Secret。
+	//
+	// 登录时：
+	//
+	// JWT.Generate(..., cfg.JWT.Secret, ...)
+	//
+	// 请求认证时：
+	//
+	// JWT(... cfg.JWT.Secret)
+	//
+	// 两边必须使用同一个 Secret。
+	jwtMiddleware := middleware.JWT(
+		cfg.JWT.Secret,
+	)
+
+	// ==================================================
+	// 10. 创建 Router
+	// ==================================================
+
 	r := router.New(
 		engine,
 		userH,
 		authH,
+		jwtMiddleware,
+		enforcer,
 	)
 
-	// ----------------------------------------
-	// 8. 返回完整 Server
-	// ----------------------------------------
+	// ==================================================
+	// 11. 返回 Server
+	// ==================================================
+
 	return &Server{
 		cfg:    cfg,
 		engine: engine,
@@ -156,10 +144,10 @@ func New(cfg *config.Config) (*Server, error) {
 // Run 启动 HTTP Server。
 func (s *Server) Run() error {
 
-	// 注册所有 HTTP 路由。
+	// 注册所有路由。
 	s.router.Register()
 
-	// 组装 HTTP Server 地址。
+	// 生成监听地址。
 	//
 	// 例如：
 	//
@@ -174,8 +162,5 @@ func (s *Server) Run() error {
 		strconv.Itoa(s.cfg.Server.Port)
 
 	// 启动 Gin HTTP Server。
-	//
-	// 这个函数会阻塞当前 goroutine，
-	// 直到 Server 停止或者发生错误。
 	return s.engine.Run(addr)
 }
