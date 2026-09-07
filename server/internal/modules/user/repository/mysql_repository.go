@@ -166,3 +166,99 @@ func IsNotFound(err error) bool {
 		gorm.ErrRecordNotFound,
 	)
 }
+
+// List 查询用户列表。
+func (r *mysqlUserRepository) List(
+	ctx context.Context,
+	params UserListParams,
+) ([]*model.User, int64, error) {
+
+	// =========================================================
+	// 第一步：创建基础查询
+	// =========================================================
+
+	query := r.db.
+		WithContext(ctx).
+		Model(&model.User{})
+
+	// =========================================================
+	// 第二步：keyword 查询
+	//
+	// 同时搜索：
+	//
+	// username
+	// display_name
+	// email
+	//
+	// LIKE 的含义类似：
+	//
+	// username LIKE '%admin%'
+	// =========================================================
+
+	if params.Keyword != "" {
+
+		keyword := "%" + params.Keyword + "%"
+
+		query = query.Where(
+			"username LIKE ? OR display_name LIKE ? OR email LIKE ?",
+			keyword,
+			keyword,
+			keyword,
+		)
+	}
+
+	// =========================================================
+	// 第三步：status 筛选
+	//
+	// nil 表示：
+	//
+	// 不进行 status 筛选。
+	// =========================================================
+
+	if params.Status != nil {
+
+		query = query.Where(
+			"status = ?",
+			*params.Status,
+		)
+	}
+
+	// =========================================================
+	// 第四步：查询总数量
+	// =========================================================
+
+	var total int64
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// =========================================================
+	// 第五步：查询当前页数据
+	// =========================================================
+
+	var users []*model.User
+
+	err := query.
+		Order("created_at DESC").
+		Offset(params.Offset).
+		Limit(params.Limit).
+		Find(&users).
+		Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}
+
+func (r *mysqlUserRepository) Delete(
+	ctx context.Context,
+	user *model.User,
+) error {
+	return r.db.
+		WithContext(ctx).
+		Delete(user).
+		Error
+}

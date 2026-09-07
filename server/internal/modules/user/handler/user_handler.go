@@ -2,9 +2,13 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
+	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/user/dto"
+	"leslie-blog-server/internal/modules/user/repository"
 	"leslie-blog-server/internal/modules/user/service"
+	"leslie-blog-server/internal/pkg/pagination"
 	"leslie-blog-server/internal/response"
 
 	"github.com/gin-gonic/gin"
@@ -67,4 +71,112 @@ func (h *UserHandler) GetByID(
 	)
 
 	_ = http.StatusOK
+}
+
+// List 获取用户列表。
+//
+// GET /api/admin/v1/users
+func (h *UserHandler) List(c *gin.Context) {
+
+	// =========================================================
+	// 第一步：解析分页参数
+	// =========================================================
+
+	pageParams := pagination.Parse(c)
+
+	// =========================================================
+	// 第二步：获取搜索条件
+	// =========================================================
+
+	keyword := c.Query("keyword")
+
+	// =========================================================
+	// 第三步：获取 status
+	// =========================================================
+
+	var status *int8
+
+	statusString := c.Query("status")
+
+	if statusString != "" {
+
+		value, err := strconv.ParseInt(
+			statusString,
+			10,
+			8,
+		)
+
+		if err != nil {
+
+			response.Error(
+				c,
+				http.StatusBadRequest,
+				appErrors.ErrInvalidParams,
+				"invalid status",
+			)
+
+			return
+		}
+
+		statusValue := int8(value)
+
+		status = &statusValue
+	}
+
+	// =========================================================
+	// 第四步：调用 Service
+	// =========================================================
+
+	users, total, err := h.service.List(
+		c.Request.Context(),
+		repository.UserListParams{
+			Keyword: keyword,
+			Status:  status,
+			Offset:  pageParams.Offset(),
+			Limit:   pageParams.PageSize,
+		},
+	)
+
+	if err != nil {
+
+		response.Error(
+			c,
+			http.StatusInternalServerError,
+			appErrors.ErrInternalServer,
+			"get user list failed",
+		)
+
+		return
+	}
+
+	// =========================================================
+	// 第五步：Model → DTO
+	// =========================================================
+
+	items := make(
+		[]*dto.UserResponse,
+		0,
+		len(users),
+	)
+
+	for _, user := range users {
+
+		items = append(
+			items,
+			dto.FromUser(user),
+		)
+	}
+
+	// =========================================================
+	// 第六步：构建分页结果
+	// =========================================================
+
+	result := pagination.Result[*dto.UserResponse]{
+		Items:    items,
+		Total:    total,
+		Page:     pageParams.Page,
+		PageSize: pageParams.PageSize,
+	}
+
+	response.Success(c, result)
 }

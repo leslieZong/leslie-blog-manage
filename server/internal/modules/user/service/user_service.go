@@ -26,6 +26,11 @@ type UserService interface {
 		ctx context.Context,
 		user *model.User,
 	) error
+
+	List(
+		ctx context.Context,
+		params repository.UserListParams,
+	) ([]*model.User, int64, error)
 }
 
 type userService struct {
@@ -186,4 +191,28 @@ func (s *userService) Create(
 	}
 
 	return nil
+}
+
+func (s *userService) List(
+	ctx context.Context,
+	params repository.UserListParams,
+) ([]*model.User, int64, error) {
+
+	// Service 层可以对分页参数进行业务约束。
+	if params.Offset < 0 {
+		params.Offset = 0
+	}
+
+	if params.Limit <= 0 {
+		params.Limit = 20
+	}
+
+	if params.Limit > 100 {
+		params.Limit = 100
+	}
+
+	return s.repo.List(
+		ctx,
+		params,
+	)
 }

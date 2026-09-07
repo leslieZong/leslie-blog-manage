@@ -29,16 +29,22 @@ func RegisterRoutes(
 	// +
 	// user:read
 	group.GET(
-		"/users/:id",
-
-		// 权限 Middleware。
+		"/users",
 		middleware.Permission(
 			enforcer,
 			"user",
 			"read",
 		),
+		userHandler.List,
+	)
 
-		// 真正的业务 Handler。
+	group.GET(
+		"/users/:id",
+		middleware.Permission(
+			enforcer,
+			"user",
+			"read",
+		),
 		userHandler.GetByID,
 	)
 }
