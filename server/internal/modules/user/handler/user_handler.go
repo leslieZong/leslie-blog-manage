@@ -268,3 +268,109 @@ func (h *UserHandler) Create(c *gin.Context) {
 		dto.FromUser(user),
 	)
 }
+
+// Update 修改用户。
+//
+// PUT /api/admin/v1/users/:id
+func (h *UserHandler) Update(c *gin.Context) {
+
+	// =========================================================
+	// 1. 获取 URL Path 参数
+	// =========================================================
+
+	id := c.Param("id")
+
+	if id == "" {
+
+		response.Error(
+			c,
+			http.StatusBadRequest,
+			appErrors.ErrInvalidParams,
+			"id is required",
+		)
+
+		return
+	}
+
+	// =========================================================
+	// 2. JSON → DTO
+	// =========================================================
+
+	var req dto.UpdateUserRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+
+		response.Error(
+			c,
+			http.StatusBadRequest,
+			appErrors.ErrInvalidParams,
+			"invalid request body",
+		)
+
+		return
+	}
+
+	// =========================================================
+	// 3. 参数校验
+	// =========================================================
+
+	if err := validator.Validate.Struct(req); err != nil {
+
+		response.Error(
+			c,
+			http.StatusBadRequest,
+			appErrors.ErrInvalidParams,
+			validator.FormatErrors(err),
+		)
+
+		return
+	}
+
+	// =========================================================
+	// 4. Service
+	// =========================================================
+
+	user, err := h.service.Update(
+		c.Request.Context(),
+		id,
+		&req,
+	)
+
+	if err != nil {
+
+		// 用户不存在。
+		if errors.Is(
+			err,
+			appErrors.ErrUserNotFound,
+		) {
+
+			response.Error(
+				c,
+				http.StatusNotFound,
+				appErrors.ErrNotFound,
+				"user not found",
+			)
+
+			return
+		}
+
+		// 其他错误。
+		response.Error(
+			c,
+			http.StatusInternalServerError,
+			appErrors.ErrInternalServer,
+			"internal server error",
+		)
+
+		return
+	}
+
+	// =========================================================
+	// 5. Model → DTO
+	// =========================================================
+
+	response.Success(
+		c,
+		dto.FromUser(user),
+	)
+}

@@ -136,8 +136,22 @@ type CreateUserRequest struct {
 // ============================================================
 
 type UpdateUserRequest struct {
-	Email       *string `json:"email"`
-	DisplayName string  `json:"displayName"`
-	AvatarURL   string  `json:"avatarUrl"`
-	Status      int8    `json:"status"`
+	// Email 可以为空。
+	//
+	// 如果传入，则必须符合 Email 格式。
+	Email *string `json:"email" validate:"omitempty,email"`
+
+	// 显示名称不能为空，并且最多 100 个字符。
+	DisplayName string `json:"displayName" validate:"required,max=100"`
+
+	// 头像 URL 可以为空，但长度不能超过 500。
+	AvatarURL string `json:"avatarUrl" validate:"omitempty,max=500"`
+
+	// 用户状态。
+	//
+	// 目前约定：
+	//
+	// 1 = 正常
+	// 0 = 禁用
+	Status int8 `json:"status" validate:"oneof=0 1"`
 }

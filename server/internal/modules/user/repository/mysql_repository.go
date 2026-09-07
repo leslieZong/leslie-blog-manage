@@ -262,3 +262,30 @@ func (r *mysqlUserRepository) Delete(
 		Delete(user).
 		Error
 }
+
+// UpdateFields 根据指定字段更新用户。
+//
+// 这里使用 GORM 的 Updates，而不是 Save。
+//
+// updates 例如：
+//
+//	map[string]any{
+//	    "email":        "leslie@example.com",
+//	    "display_name": "Leslie",
+//	    "status":       1,
+//	}
+//
+// 最终只会更新这些字段。
+func (r *mysqlUserRepository) UpdateFields(
+	ctx context.Context,
+	id string,
+	updates map[string]any,
+) error {
+
+	return r.db.
+		WithContext(ctx).
+		Model(&model.User{}).
+		Where("id = ?", id).
+		Updates(updates).
+		Error
+}

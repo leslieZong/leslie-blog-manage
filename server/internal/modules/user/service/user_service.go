@@ -39,6 +39,12 @@ type UserService interface {
 		ctx context.Context,
 		req *dto.CreateUserRequest,
 	) (*model.User, error)
+
+	Update(
+		ctx context.Context,
+		id string,
+		req *dto.UpdateUserRequest,
+	) (*model.User, error)
 }
 
 type userService struct {
@@ -299,6 +305,93 @@ func (s *userService) CreateFromRequest(
 	// =========================================================
 	// 第六步：返回创建后的 User
 	// =========================================================
+
+	return user, nil
+}
+
+func (s *userService) Update(
+	ctx context.Context,
+	id string,
+	req *dto.UpdateUserRequest,
+) (*model.User, error) {
+
+	// =========================================================
+	// 1. 参数基础检查
+	// =========================================================
+
+	if id == "" {
+		return nil, errors.New(
+			"user id cannot be empty",
+		)
+	}
+
+	if req == nil {
+		return nil, errors.New(
+			"update user request cannot be nil",
+		)
+	}
+
+	// =========================================================
+	// 2. 查询用户
+	// =========================================================
+
+	user, err := s.repo.FindByID(
+		ctx,
+		id,
+	)
+
+	if err != nil {
+		if errors.Is(
+			err,
+			gorm.ErrRecordNotFound,
+		) {
+			return nil, appErrors.ErrUserNotFound
+		}
+
+		return nil, err
+	}
+
+	// =========================================================
+	// 3. 构造允许更新的字段
+	// =========================================================
+
+	updates := map[string]any{
+		"email":        req.Email,
+		"display_name": req.DisplayName,
+		"avatar_url":   req.AvatarURL,
+		"status":       req.Status,
+	}
+
+	// =========================================================
+	// 4. 执行数据库更新
+	// =========================================================
+
+	if err := s.repo.UpdateFields(
+		ctx,
+		id,
+		updates,
+	); err != nil {
+		return nil, err
+	}
+
+	// =========================================================
+	// 5. 再查询一次
+	//
+	// 为什么？
+	//
+	// 因为数据库中的 updated_at 可能已经发生变化。
+	//
+	// 我们重新查询可以拿到最新完整数据。
+	// =========================================================
+
+	user, err = s.repo.FindByID(
+		ctx,
+		id,
+	)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return user, nil
 }

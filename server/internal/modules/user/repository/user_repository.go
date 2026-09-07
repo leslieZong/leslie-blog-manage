@@ -16,38 +16,37 @@ type UserListParams struct {
 
 // UserRepository 定义用户数据访问能力。
 type UserRepository interface {
-
-	// 根据 ID 查询用户。
 	FindByID(
 		ctx context.Context,
 		id string,
 	) (*model.User, error)
 
-	// 根据用户名查询用户。
 	FindByUsername(
 		ctx context.Context,
 		username string,
 	) (*model.User, error)
 
-	// 查询用户列表。
 	List(
 		ctx context.Context,
 		params UserListParams,
 	) ([]*model.User, int64, error)
 
-	// 创建用户。
 	Create(
 		ctx context.Context,
 		user *model.User,
 	) error
 
-	// 更新用户。
 	Update(
 		ctx context.Context,
 		user *model.User,
 	) error
 
-	// 删除用户。
+	UpdateFields(
+		ctx context.Context,
+		id string,
+		updates map[string]any,
+	) error
+
 	Delete(
 		ctx context.Context,
 		user *model.User,
