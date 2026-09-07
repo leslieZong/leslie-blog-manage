@@ -71,7 +71,7 @@ func New(cfg *config.Config) (*Server, error) {
 	// 5. 创建 User Service
 	// ==================================================
 
-	userSvc := userService.NewUserService(userRepo)
+	userSvc := userService.NewUserService(userRepo, enforcer)
 
 	// ==================================================
 	// 6. 创建 User Handler

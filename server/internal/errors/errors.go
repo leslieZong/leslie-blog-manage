@@ -153,3 +153,7 @@ var ErrInvalidCredentials = errors.New(
 var ErrUserDisabled = errors.New(
 	"user is disabled",
 )
+
+var ErrCannotDeleteSelf = errors.New(
+	"cannot delete yourself",
+)

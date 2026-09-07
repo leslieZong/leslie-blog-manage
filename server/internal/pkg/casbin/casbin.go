@@ -147,6 +147,14 @@ func (e *Enforcer) AddRoleForUser(
 	return err
 }
 
+func (e *Enforcer) DeleteRolesForUser(
+	userID string,
+) error {
+	_, err := e.engine.DeleteRolesForUser(userID)
+
+	return err
+}
+
 // DeleteRoleForUser 删除用户角色。
 func (e *Enforcer) DeleteRoleForUser(
 	userID string,

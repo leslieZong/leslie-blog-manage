@@ -67,4 +67,14 @@ func RegisterRoutes(
 		),
 		userHandler.Update,
 	)
+
+	group.DELETE(
+		"/users/:id",
+		middleware.Permission(
+			enforcer,
+			"user",
+			"delete",
+		),
+		userHandler.Delete,
+	)
 }

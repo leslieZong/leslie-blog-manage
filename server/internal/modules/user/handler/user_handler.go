@@ -10,6 +10,7 @@ import (
 	"leslie-blog-server/internal/modules/user/dto"
 	"leslie-blog-server/internal/modules/user/repository"
 	"leslie-blog-server/internal/modules/user/service"
+	"leslie-blog-server/internal/pkg/auth"
 	"leslie-blog-server/internal/pkg/pagination"
 	"leslie-blog-server/internal/pkg/validator"
 	"leslie-blog-server/internal/response"
@@ -54,6 +55,16 @@ func (h *UserHandler) GetByID(
 	// ==================================================
 
 	if err != nil {
+		if errors.Is(err, appErrors.ErrUserNotFound) {
+			response.Error(
+				c,
+				http.StatusNotFound,
+				appErrors.ErrNotFound,
+				err.Error(),
+			)
+			return
+		}
+
 		response.AppError(c, err)
 		return
 	}
@@ -373,4 +384,80 @@ func (h *UserHandler) Update(c *gin.Context) {
 		c,
 		dto.FromUser(user),
 	)
+}
+
+func (h *UserHandler) Delete(c *gin.Context) {
+
+	// 获取 URL Path 参数。
+	//
+	// DELETE /users/:id
+	//
+	// 例如：
+	//
+	// DELETE /users/01KABC...
+	//
+	// 那么：
+	//
+	// c.Param("id")
+	// 就是：
+	//
+	// 01KABC...
+	targetUserID := c.Param("id")
+
+	// 获取当前登录用户 ID。
+	//
+	// 这个 ID 来自 JWT Middleware。
+	operatorUserID := auth.GetUserID(c)
+
+	// 调用 Service 执行删除。
+	//
+	// Handler 不直接操作数据库。
+	err := h.service.Delete(
+		c.Request.Context(),
+		operatorUserID,
+		targetUserID,
+	)
+
+	if err != nil {
+
+		// 不能删除自己。
+		if errors.Is(
+			err,
+			appErrors.ErrCannotDeleteSelf,
+		) {
+			response.Error(
+				c,
+				http.StatusForbidden,
+				appErrors.ErrForbidden,
+				err.Error(),
+			)
+			return
+		}
+
+		// 用户不存在。
+		if errors.Is(
+			err,
+			appErrors.ErrUserNotFound,
+		) {
+			response.Error(
+				c,
+				http.StatusNotFound,
+				appErrors.ErrNotFound,
+				err.Error(),
+			)
+			return
+		}
+
+		// 其他错误。
+		response.Error(
+			c,
+			http.StatusInternalServerError,
+			appErrors.ErrInternalServer,
+			"delete user failed",
+		)
+		return
+	}
+
+	// 删除成功。
+	response.Success(c, nil)
 }

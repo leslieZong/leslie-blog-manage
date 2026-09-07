@@ -8,6 +8,7 @@ import (
 	"leslie-blog-server/internal/modules/user/dto"
 	"leslie-blog-server/internal/modules/user/model"
 	"leslie-blog-server/internal/modules/user/repository"
+	"leslie-blog-server/internal/pkg/casbin"
 	"leslie-blog-server/internal/pkg/password"
 	"leslie-blog-server/internal/pkg/ulid"
 
@@ -45,17 +46,26 @@ type UserService interface {
 		id string,
 		req *dto.UpdateUserRequest,
 	) (*model.User, error)
+
+	Delete(
+		ctx context.Context,
+		operatorUserID string,
+		targetUserID string,
+	) error
 }
 
 type userService struct {
-	repo repository.UserRepository
+	repo     repository.UserRepository
+	enforcer *casbin.Enforcer
 }
 
 func NewUserService(
 	repo repository.UserRepository,
+	enforcer *casbin.Enforcer,
 ) UserService {
 	return &userService{
-		repo: repo,
+		repo:     repo,
+		enforcer: enforcer,
 	}
 }
 
@@ -394,4 +404,42 @@ func (s *userService) Update(
 	}
 
 	return user, nil
+}
+
+func (s *userService) Delete(
+	ctx context.Context,
+	operatorUserID string,
+	targetUserID string,
+) error {
+
+	if operatorUserID == "" {
+		return errors.New("operator user id cannot be empty")
+	}
+
+	if targetUserID == "" {
+		return errors.New("target user id cannot be empty")
+	}
+
+	if operatorUserID == targetUserID {
+		return appErrors.ErrCannotDeleteSelf
+	}
+
+	user, err := s.repo.FindByID(ctx, targetUserID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return appErrors.ErrUserNotFound
+		}
+
+		return err
+	}
+
+	if err := s.repo.Delete(ctx, user); err != nil {
+		return err
+	}
+
+	if err := s.enforcer.DeleteRolesForUser(targetUserID); err != nil {
+		return err
+	}
+
+	return nil
 }
