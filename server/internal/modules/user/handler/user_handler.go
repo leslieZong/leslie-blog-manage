@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -9,6 +11,7 @@ import (
 	"leslie-blog-server/internal/modules/user/repository"
 	"leslie-blog-server/internal/modules/user/service"
 	"leslie-blog-server/internal/pkg/pagination"
+	"leslie-blog-server/internal/pkg/validator"
 	"leslie-blog-server/internal/response"
 
 	"github.com/gin-gonic/gin"
@@ -179,4 +182,89 @@ func (h *UserHandler) List(c *gin.Context) {
 	}
 
 	response.Success(c, result)
+}
+
+func (h *UserHandler) Create(c *gin.Context) {
+
+	var req dto.CreateUserRequest
+
+	// =========================================================
+	// 1. JSON → DTO
+	// =========================================================
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+
+		response.Error(
+			c,
+			http.StatusBadRequest,
+			appErrors.ErrInvalidParams,
+			"invalid request body",
+		)
+
+		return
+	}
+
+	// =========================================================
+	// 2. DTO 参数校验
+	// =========================================================
+
+	if err := validator.Validate.Struct(req); err != nil {
+
+		response.Error(
+			c,
+			http.StatusBadRequest,
+			appErrors.ErrInvalidParams,
+			validator.FormatErrors(err),
+		)
+
+		return
+	}
+
+	// =========================================================
+	// 3. Service
+	// =========================================================
+
+	user, err := h.service.CreateFromRequest(
+		c.Request.Context(),
+		&req,
+	)
+	fmt.Println("============")
+	fmt.Println(err)
+	if err != nil {
+
+		// 用户名重复。
+		if errors.Is(
+			err,
+			appErrors.ErrUsernameExists,
+		) {
+
+			response.Error(
+				c,
+				http.StatusConflict,
+				appErrors.ErrConflict,
+				"username already exists",
+			)
+
+			return
+		}
+
+		// 其他未知错误。
+		response.Error(
+			c,
+			http.StatusInternalServerError,
+			appErrors.ErrInternalServer,
+			"internal server error",
+		)
+
+		return
+	}
+
+	// =========================================================
+	// 4. Model → Response DTO
+	// =========================================================
+
+	response.Success(
+		c,
+		dto.FromUser(user),
+	)
 }

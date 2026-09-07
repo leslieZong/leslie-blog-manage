@@ -91,11 +91,7 @@ func (s *authService) Login(
 		// “用户不存在”和“密码错误”
 		// 对外统一返回认证失败。
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, appErrors.New(
-				appErrors.ErrInvalidCredentials,
-				401,
-				"invalid username or password",
-			)
+			return nil, appErrors.ErrInvalidCredentials
 		}
 
 		// 真正的数据库错误不能伪装成 401。
@@ -112,11 +108,7 @@ func (s *authService) Login(
 	// ==================================================
 
 	if user.Status != 1 {
-		return nil, appErrors.New(
-			appErrors.ErrUserDisabled,
-			403,
-			"user is disabled",
-		)
+		return nil, appErrors.ErrUserDisabled
 	}
 
 	// ==================================================
@@ -127,11 +119,7 @@ func (s *authService) Login(
 		user.PasswordHash,
 		req.Password,
 	) {
-		return nil, appErrors.New(
-			appErrors.ErrInvalidCredentials,
-			401,
-			"invalid username or password",
-		)
+		return nil, appErrors.ErrInvalidCredentials
 	}
 
 	// ==================================================

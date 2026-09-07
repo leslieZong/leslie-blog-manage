@@ -86,12 +86,36 @@ func FromUser(user *model.User) *UserResponse {
 // 这些字段由后端负责。
 // ============================================================
 
+// CreateUserRequest 创建用户请求。
 type CreateUserRequest struct {
-	Username    string  `json:"username"`
-	Password    string  `json:"password"`
-	Email       *string `json:"email"`
-	DisplayName string  `json:"displayName"`
-	AvatarURL   string  `json:"avatarUrl"`
+
+	// 用户名：
+	//
+	// 不能为空
+	// 最少 3 个字符
+	// 最多 50 个字符
+	Username string `json:"username" validate:"required,min=3,max=50"`
+
+	// 密码：
+	//
+	// 不能为空
+	// 最少 6 个字符
+	// bcrypt 实际最大支持 72 bytes。
+	//
+	// 注意这里暂时使用字符长度约束，
+	// 后面可以进一步处理 UTF-8 byte 长度问题。
+	Password string `json:"password" validate:"required,min=6,max=72"`
+
+	// Email 可以为空。
+	//
+	// 如果传了，就必须符合 email 格式。
+	Email *string `json:"email" validate:"omitempty,email"`
+
+	// 显示名称。
+	DisplayName string `json:"displayName" validate:"required,max=100"`
+
+	// 头像地址可以为空。
+	AvatarURL string `json:"avatarUrl" validate:"omitempty,max=500"`
 }
 
 // ============================================================

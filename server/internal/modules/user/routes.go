@@ -47,4 +47,14 @@ func RegisterRoutes(
 		),
 		userHandler.GetByID,
 	)
+
+	group.POST(
+		"/users",
+		middleware.Permission(
+			enforcer,
+			"user",
+			"create",
+		),
+		userHandler.Create,
+	)
 }

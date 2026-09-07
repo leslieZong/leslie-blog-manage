@@ -5,8 +5,11 @@ import (
 	"errors"
 
 	appErrors "leslie-blog-server/internal/errors"
+	"leslie-blog-server/internal/modules/user/dto"
 	"leslie-blog-server/internal/modules/user/model"
 	"leslie-blog-server/internal/modules/user/repository"
+	"leslie-blog-server/internal/pkg/password"
+	"leslie-blog-server/internal/pkg/ulid"
 
 	"gorm.io/gorm"
 )
@@ -31,6 +34,11 @@ type UserService interface {
 		ctx context.Context,
 		params repository.UserListParams,
 	) ([]*model.User, int64, error)
+
+	CreateFromRequest(
+		ctx context.Context,
+		req *dto.CreateUserRequest,
+	) (*model.User, error)
 }
 
 type userService struct {
@@ -66,11 +74,7 @@ func (s *userService) GetByID(
 
 		// 数据库没有找到用户。
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, appErrors.New(
-				appErrors.ErrUserNotFound,
-				404,
-				"user not found",
-			)
+			return nil, appErrors.ErrUserNotFound
 		}
 
 		// 其他数据库错误。
@@ -107,11 +111,7 @@ func (s *userService) GetByUsername(
 	if err != nil {
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, appErrors.New(
-				appErrors.ErrUserNotFound,
-				404,
-				"user not found",
-			)
+			return nil, appErrors.ErrUserNotFound
 		}
 
 		return nil, appErrors.Wrap(
@@ -162,11 +162,7 @@ func (s *userService) Create(
 	)
 
 	if err == nil && existingUser != nil {
-		return appErrors.New(
-			appErrors.ErrUsernameExists,
-			400,
-			"username already exists",
-		)
+		return appErrors.ErrUsernameExists
 	}
 
 	if err != nil &&
@@ -215,4 +211,94 @@ func (s *userService) List(
 		ctx,
 		params,
 	)
+}
+
+func (s *userService) CreateFromRequest(
+	ctx context.Context,
+	req *dto.CreateUserRequest,
+) (*model.User, error) {
+
+	// =========================================================
+	// 第一步：防止 nil
+	// =========================================================
+
+	if req == nil {
+		return nil, errors.New(
+			"create user request cannot be nil",
+		)
+	}
+
+	// =========================================================
+	// 第二步：检查用户名是否已经存在
+	// =========================================================
+
+	existingUser, err := s.repo.FindByUsername(
+		ctx,
+		req.Username,
+	)
+
+	if err == nil && existingUser != nil {
+		return nil, errors.New(
+			"username already exists",
+		)
+	}
+
+	if err != nil &&
+		!errors.Is(err, gorm.ErrRecordNotFound) {
+
+		return nil, err
+	}
+
+	// =========================================================
+	// 第三步：密码 Hash
+	// =========================================================
+	//
+	// 绝对不能：
+	//
+	// PasswordHash: req.Password
+	//
+	// 必须：
+	//
+	// Plain Password
+	//       ↓
+	// bcrypt
+	//       ↓
+	// PasswordHash
+	// =========================================================
+
+	passwordHash, err := password.Hash(
+		req.Password,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// =========================================================
+	// 第四步：创建 User Model
+	// =========================================================
+
+	user := &model.User{
+		ID:           ulid.New(),
+		Username:     req.Username,
+		PasswordHash: passwordHash,
+		Email:        req.Email,
+		DisplayName:  req.DisplayName,
+		AvatarURL:    req.AvatarURL,
+		Status:       1,
+	}
+
+	// =========================================================
+	// 第五步：保存数据库
+	// =========================================================
+
+	if err := s.repo.Create(ctx, user); err != nil {
+		return nil, err
+	}
+
+	// =========================================================
+	// 第六步：返回创建后的 User
+	// =========================================================
+
+	return user, nil
 }

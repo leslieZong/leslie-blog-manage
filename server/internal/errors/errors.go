@@ -1,6 +1,9 @@
 package errors
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // ============================================================
 // 1. 定义业务错误码
@@ -27,15 +30,8 @@ const (
 	ErrUnauthorized   = 40101
 	ErrForbidden      = 40301
 	ErrNotFound       = 40401
+	ErrConflict       = 40901
 	ErrInternalServer = 50001
-
-	// 用户相关错误
-	ErrUserNotFound   = 40402
-	ErrUsernameExists = 40002
-	ErrUserDisabled   = 40302
-
-	// 认证相关错误
-	ErrInvalidCredentials = 40102
 )
 
 // AppError 是 Leslie Blog 项目统一的业务错误。
@@ -121,3 +117,39 @@ func Wrap(
 		Err:        err,
 	}
 }
+
+// ============================================================
+// 业务错误
+// ============================================================
+
+// ErrUserNotFound 用户不存在。
+var ErrUserNotFound = errors.New(
+	"user not found",
+)
+
+// ErrUsernameExists 用户名已经存在。
+var ErrUsernameExists = errors.New(
+	"username already exists",
+)
+
+// ErrInvalidCredentials 登录凭证错误。
+//
+// 注意不要分别告诉用户：
+//
+//	用户名不存在
+//
+// 或：
+//
+//	密码错误
+//
+// 而统一返回：
+//
+//	invalid username or password
+var ErrInvalidCredentials = errors.New(
+	"invalid username or password",
+)
+
+// ErrUserDisabled 用户被禁用。
+var ErrUserDisabled = errors.New(
+	"user is disabled",
+)
