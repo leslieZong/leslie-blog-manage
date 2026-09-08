@@ -132,6 +132,14 @@ var ErrUsernameExists = errors.New(
 	"username already exists",
 )
 
+var ErrRoleNotFound = errors.New(
+	"role not found",
+)
+
+var ErrRoleNameExists = errors.New(
+	"role name already exists",
+)
+
 // ErrInvalidCredentials 登录凭证错误。
 //
 // 注意不要分别告诉用户：

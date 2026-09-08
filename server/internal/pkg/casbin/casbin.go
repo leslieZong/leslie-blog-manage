@@ -275,3 +275,24 @@ func (e *Enforcer) AddRoleForUserIfNotExists(
 
 	return err
 }
+
+// DeleteRole 删除 Casbin 中与角色相关的策略。
+//
+// 例如：
+//
+// p | editor | post | read
+// p | editor | post | create
+//
+// 删除 editor 后，
+// 这些策略都会被 Casbin 清理。
+func (e *Enforcer) DeleteRole(
+	roleName string,
+) error {
+
+	// 删除该角色作为 subject 时的所有策略。
+	_, err := e.engine.DeleteRole(
+		roleName,
+	)
+
+	return err
+}
