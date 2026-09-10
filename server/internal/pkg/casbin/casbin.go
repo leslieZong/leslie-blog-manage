@@ -327,3 +327,10 @@ func (e *Enforcer) GetUsersForRole(role string) ([]string, error) {
 func (e *Enforcer) DeleteRolePolicies(role string) (bool, error) {
 	return e.engine.DeletePermissionsForUser(role)
 }
+
+// GetPermissionsForUser 获取角色的所有权限。
+func (e *Enforcer) GetPermissionsForUser(
+	subject string,
+) ([][]string, error) {
+	return e.engine.GetPermissionsForUser(subject)
+}

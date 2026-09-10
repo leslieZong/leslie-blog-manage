@@ -277,3 +277,48 @@ func (h *RoleHandler) Delete(
 
 	response.Success(c, nil)
 }
+
+func (h *RoleHandler) GetPermissions(c *gin.Context) {
+
+	roleID := c.Param("id")
+
+	result, err := h.roleService.GetPermissions(
+		c.Request.Context(),
+		roleID,
+	)
+
+	if err != nil {
+		// 这里继续使用你当前项目已有的错误响应处理方式。
+		// 不要在 Handler 中自己查询数据库。
+		response.AppError(c, err)
+		return
+	}
+
+	// 使用项目当前统一响应格式。
+	response.Success(c, result)
+}
+
+func (h *RoleHandler) UpdatePermissions(c *gin.Context) {
+
+	roleID := c.Param("id")
+	var req dto.UpdateRolePermissionsRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// 使用当前项目统一参数错误处理方式。
+		response.AppError(c, err)
+		return
+	}
+
+	err := h.roleService.UpdatePermissions(
+		c.Request.Context(),
+		roleID,
+		req.Permissions,
+	)
+
+	if err != nil {
+		response.AppError(c, err)
+		return
+	}
+
+	response.Success(c, nil)
+}

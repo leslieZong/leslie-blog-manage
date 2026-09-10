@@ -14,12 +14,13 @@ func RegisterRoutes(
 	roleHandler *handler.RoleHandler,
 	enforcer *casbin.Enforcer,
 ) {
+	roles := group.Group("/roles")
 
 	// GET /roles
 	//
 	// 查看角色列表。
-	group.GET(
-		"/roles",
+	roles.GET(
+		"/",
 		middleware.Permission(
 			enforcer,
 			"role",
@@ -31,8 +32,8 @@ func RegisterRoutes(
 	// POST /roles
 	//
 	// 创建角色。
-	group.POST(
-		"/roles",
+	roles.POST(
+		"/",
 		middleware.Permission(
 			enforcer,
 			"role",
@@ -44,8 +45,8 @@ func RegisterRoutes(
 	// PUT /roles/:id
 	//
 	// 修改角色。
-	group.PUT(
-		"/roles/:id",
+	roles.PUT(
+		"/:id",
 		middleware.Permission(
 			enforcer,
 			"role",
@@ -57,13 +58,23 @@ func RegisterRoutes(
 	// DELETE /roles/:id
 	//
 	// 删除角色。
-	group.DELETE(
-		"/roles/:id",
+	roles.DELETE(
+		"/:id",
 		middleware.Permission(
 			enforcer,
 			"role",
 			"delete",
 		),
 		roleHandler.Delete,
+	)
+
+	roles.GET(
+		"/:id/permissions",
+		roleHandler.GetPermissions,
+	)
+
+	roles.PUT(
+		"/:id/permissions",
+		roleHandler.UpdatePermissions,
 	)
 }
