@@ -296,3 +296,34 @@ func (e *Enforcer) DeleteRole(
 
 	return err
 }
+
+// GetUsersForRole 获取指定角色下的所有用户。
+//
+// Casbin 中的角色关系：
+//
+// g, user001, admin
+// g, user002, admin
+//
+// 调用：
+//
+// GetUsersForRole("admin")
+//
+// 得到：
+//
+// ["user001", "user002"]
+func (e *Enforcer) GetUsersForRole(role string) ([]string, error) {
+	return e.engine.GetUsersForRole(role)
+}
+
+// DeleteRolePolicies 删除指定角色的全部权限策略。
+//
+// 例如：
+//
+// p, editor, post, read
+// p, editor, post, create
+// p, editor, post, update
+//
+// 删除 editor 后，这些 p 记录都应该被删除。
+func (e *Enforcer) DeleteRolePolicies(role string) (bool, error) {
+	return e.engine.DeletePermissionsForUser(role)
+}

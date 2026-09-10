@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	appErrors "leslie-blog-server/internal/errors"
+	constant "leslie-blog-server/internal/modules/role/const"
 	"leslie-blog-server/internal/modules/role/dto"
 	"leslie-blog-server/internal/modules/role/model"
 	"leslie-blog-server/internal/modules/role/repository"
@@ -213,6 +214,12 @@ func (s *roleService) Delete(
 	ctx context.Context,
 	id string,
 ) error {
+	// 1. 查询角色
+	// 2. 判断角色是否存在
+	// 3. 判断是否系统角色
+	// 4. 判断是否正在被用户使用
+	// 5. 删除角色
+	// 6. 清理 Casbin
 
 	if id == "" {
 		return errors.New(
@@ -242,21 +249,29 @@ func (s *roleService) Delete(
 	// admin 是系统内置超级管理员角色。
 	//
 	// 第一阶段不允许删除。
-	if role.Name == "admin" {
+	if constant.IsSystemRole(role.Name) {
 		return errors.New(
 			"cannot delete system role",
 		)
 	}
 
-	// 删除数据库角色。
-	if err := s.repo.Delete(ctx, role); err != nil {
+	// 判断是否正在被用户使用。
+	users, err := s.enforcer.GetUsersForRole(role.Name)
+	if err != nil {
 		return err
 	}
 
-	// 删除 Casbin 中该角色的权限策略。
-	if err := s.enforcer.DeleteRole(
-		role.Name,
-	); err != nil {
+	if len(users) > 0 {
+		return errors.New(
+			"role is in use",
+		)
+	}
+	// 删除角色对应的 Casbin 权限
+	if _, err := s.enforcer.DeleteRolePolicies(role.Name); err != nil {
+		return err
+	}
+	// 删除角色
+	if err := s.repo.Delete(ctx, role); err != nil {
 		return err
 	}
 
