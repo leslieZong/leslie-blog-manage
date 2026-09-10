@@ -1,8 +1,10 @@
 package server
 
 import (
+	"context"
 	"strconv"
 
+	"leslie-blog-server/internal/bootstrap"
 	"leslie-blog-server/internal/config"
 	"leslie-blog-server/internal/database"
 	"leslie-blog-server/internal/middleware"
@@ -55,6 +57,11 @@ func New(cfg *config.Config) (*Server, error) {
 	// ==================================================
 
 	engine := gin.New()
+
+	// 初始化数据库。
+	if err := bootstrap.SeedDatabase(context.Background(), db, enforcer); err != nil {
+		return nil, err
+	}
 
 	// ==================================================
 	// 3. 注册全局 Middleware

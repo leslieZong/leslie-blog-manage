@@ -59,4 +59,7 @@ type PermissionRepository interface {
 	// post:read
 	// post:create
 	FindByNames(ctx context.Context, names []string) ([]*model.Permission, error)
+
+	// Create 创建权限。
+	Create(ctx context.Context, permission *model.Permission) error
 }

@@ -156,3 +156,11 @@ func (r *gormPermissionRepository) FindByNames(
 
 	return permissions, nil
 }
+
+// Create 创建权限。
+func (r *gormPermissionRepository) Create(
+	ctx context.Context,
+	permission *model.Permission,
+) error {
+	return r.db.WithContext(ctx).Create(permission).Error
+}

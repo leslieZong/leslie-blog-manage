@@ -1,6 +1,17 @@
 package seeder
 
-// SeedPermission 描述一个系统初始化权限。
+import (
+	"context"
+	"errors"
+
+	"leslie-blog-server/internal/modules/permission/model"
+	permissionRepository "leslie-blog-server/internal/modules/permission/repository"
+	"leslie-blog-server/internal/pkg/ulid"
+
+	"gorm.io/gorm"
+)
+
+// SeedPermission 表示一个系统初始化权限。
 type SeedPermission struct {
 	Name        string
 	DisplayName string
@@ -9,6 +20,21 @@ type SeedPermission struct {
 	Description string
 }
 
+// systemPermissions 是 Leslie Blog 系统的权限定义。
+//
+// 注意：
+//
+// 这里定义的是：
+// “系统有哪些合法权限”
+//
+// 例如：
+//
+// post:create
+//
+// 并不是：
+// “谁拥有 post:create”
+//
+// “谁拥有权限”由 Casbin Policy 管理。
 var systemPermissions = []SeedPermission{
 	{
 		Name:        "user:read",
@@ -197,4 +223,63 @@ var systemPermissions = []SeedPermission{
 		Action:      "delete",
 		Description: "删除项目",
 	},
+}
+
+// Seed 初始化系统 Permission。
+//
+// 这个方法必须保证幂等性：
+//
+// 第一次启动：
+// 创建所有不存在的权限。
+//
+// 第二次启动：
+// 已存在的权限直接跳过。
+func Seed(
+	ctx context.Context,
+	repo permissionRepository.PermissionRepository,
+) error {
+
+	// 遍历所有系统预定义权限。
+	for _, item := range systemPermissions {
+
+		// 第一步：
+		// 根据 Name 查询权限是否已经存在。
+		permission, err := repo.FindByName(
+			ctx,
+			item.Name,
+		)
+
+		// 查询成功，说明数据库中已经存在。
+		if err == nil && permission != nil {
+
+			// 已存在，直接跳过。
+			continue
+		}
+
+		// 如果错误不是“记录不存在”，
+		// 说明数据库查询本身发生了异常。
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		// 第二步：
+		// 数据库不存在该 Permission，
+		// 创建新的 Permission。
+		permission = &model.Permission{
+			ID:          ulid.New(),
+			Name:        item.Name,
+			DisplayName: item.DisplayName,
+			Resource:    item.Resource,
+			Action:      item.Action,
+			Description: &item.Description,
+		}
+
+		// 第三步：
+		// 写入数据库。
+		if err := repo.Create(ctx, permission); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
