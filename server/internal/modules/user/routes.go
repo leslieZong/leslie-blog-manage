@@ -14,6 +14,7 @@ func RegisterRoutes(
 	userHandler *handler.UserHandler,
 	enforcer *casbin.Enforcer,
 ) {
+	users := group.Group("/users")
 
 	// ==================================================
 	// 获取用户详情
@@ -28,8 +29,8 @@ func RegisterRoutes(
 	// JWT
 	// +
 	// user:read
-	group.GET(
-		"/users",
+	users.GET(
+		"/",
 		middleware.Permission(
 			enforcer,
 			"user",
@@ -38,8 +39,8 @@ func RegisterRoutes(
 		userHandler.List,
 	)
 
-	group.GET(
-		"/users/:id",
+	users.GET(
+		"/:id",
 		middleware.Permission(
 			enforcer,
 			"user",
@@ -48,8 +49,8 @@ func RegisterRoutes(
 		userHandler.GetByID,
 	)
 
-	group.POST(
-		"/users",
+	users.POST(
+		"/",
 		middleware.Permission(
 			enforcer,
 			"user",
@@ -58,8 +59,8 @@ func RegisterRoutes(
 		userHandler.Create,
 	)
 
-	group.PUT(
-		"/users/:id",
+	users.PUT(
+		"/:id",
 		middleware.Permission(
 			enforcer,
 			"user",
@@ -68,13 +69,35 @@ func RegisterRoutes(
 		userHandler.Update,
 	)
 
-	group.DELETE(
-		"/users/:id",
+	users.DELETE(
+		"/:id",
 		middleware.Permission(
 			enforcer,
 			"user",
 			"delete",
 		),
 		userHandler.Delete,
+	)
+
+	// 查询用户角色
+	users.GET(
+		"/:id/roles",
+		middleware.Permission(
+			enforcer,
+			"role",
+			"read",
+		),
+		userHandler.GetRoles,
+	)
+
+	// 修改用户角色
+	users.PUT(
+		"/:id/roles",
+		middleware.Permission(
+			enforcer,
+			"role",
+			"update",
+		),
+		userHandler.UpdateRoles,
 	)
 }

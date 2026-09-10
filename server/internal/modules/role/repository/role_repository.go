@@ -63,4 +63,31 @@ type RoleRepository interface {
 		ctx context.Context,
 		role *model.Role,
 	) error
+
+	// FindByNames 根据多个角色名称查询角色。
+	//
+	// 例如：
+	//
+	// []string{
+	//     "editor",
+	//     "reviewer",
+	// }
+	//
+	// 最终查询：
+	//
+	// SELECT *
+	// FROM roles
+	// WHERE name IN ("editor", "reviewer")
+	//
+	// 这个方法主要用于：
+	//
+	// Casbin 返回角色名称
+	//        ↓
+	// 查询数据库角色
+	//        ↓
+	// 返回完整 Role Model
+	FindByNames(
+		ctx context.Context,
+		names []string,
+	) ([]*model.Role, error)
 }

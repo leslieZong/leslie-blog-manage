@@ -55,16 +55,6 @@ func (h *UserHandler) GetByID(
 	// ==================================================
 
 	if err != nil {
-		if errors.Is(err, appErrors.ErrUserNotFound) {
-			response.Error(
-				c,
-				http.StatusNotFound,
-				appErrors.ErrNotFound,
-				err.Error(),
-			)
-			return
-		}
-
 		response.AppError(c, err)
 		return
 	}
@@ -153,11 +143,9 @@ func (h *UserHandler) List(c *gin.Context) {
 
 	if err != nil {
 
-		response.Error(
+		response.AppError(
 			c,
-			http.StatusInternalServerError,
-			appErrors.ErrInternalServer,
-			"get user list failed",
+			err,
 		)
 
 		return
@@ -239,8 +227,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 		c.Request.Context(),
 		&req,
 	)
-	fmt.Println("============")
-	fmt.Println(err)
+
 	if err != nil {
 
 		// 用户名重复。
@@ -459,5 +446,176 @@ func (h *UserHandler) Delete(c *gin.Context) {
 	}
 
 	// 删除成功。
+	response.Success(c, nil)
+}
+
+// GetRoles 获取指定用户的角色列表
+//
+// HTTP:
+//
+//	GET /api/admin/v1/users/:id/roles
+//
+// 业务流程：
+//  1. 从 URL 获取用户 ID
+//  2. 获取 HTTP Context
+//  3. 调用 UserService 查询角色
+//  4. 返回角色列表
+func (h *UserHandler) GetRoles(c *gin.Context) {
+	fmt.Println("GetRoles")
+	// ---------------------------------------------------------
+	// 1. 获取 URL 参数
+	//
+	// 对于：
+	//
+	// GET /users/01KABC/roles
+	//
+	// c.Param("id") 得到：
+	//
+	// 01KABC
+	// ---------------------------------------------------------
+	userID := c.Param("id")
+
+	// ---------------------------------------------------------
+	// 2. 获取 Go 标准 context.Context
+	//
+	// c.Request.Context() 是当前 HTTP 请求对应的 Context。
+	//
+	// Repository / Service 层应该继续使用这个 Context，
+	// 这样请求被取消、客户端断开连接等情况能够向下传递。
+	// ---------------------------------------------------------
+	ctx := c.Request.Context()
+
+	// ---------------------------------------------------------
+	// 3. 调用 Service
+	//
+	// Handler 不应该自己查询数据库。
+	//
+	// 这里真正的业务逻辑交给 UserService：
+	//
+	// UserService
+	//    ↓
+	// UserRepository
+	//    ↓
+	// Casbin
+	//    ↓
+	// RoleRepository
+	// ---------------------------------------------------------
+	roles, err := h.service.GetRoles(ctx, userID)
+	if err != nil {
+		// 这里沿用你当前项目已有的统一错误处理方式。
+		//
+		// 例如你现有 Handler 中如果使用：
+		//
+		// h.handleError(c, err)
+		//
+		// 就继续使用这个方法。
+		//
+		// 不要在这里重新实现一套错误处理。
+		response.AppError(
+			c,
+			err,
+		)
+		return
+	}
+
+	// ---------------------------------------------------------
+	// 4. 返回成功响应
+	//
+	// 同样沿用项目当前统一 Response 方法。
+	// ---------------------------------------------------------
+	response.Success(c, roles)
+}
+
+// UpdateRoles 修改指定用户的角色
+//
+// HTTP:
+//
+//	PUT /api/admin/v1/users/:id/roles
+//
+// Request:
+//
+//	{
+//	    "roles": ["admin", "editor"]
+//	}
+func (h *UserHandler) UpdateRoles(c *gin.Context) {
+	// ---------------------------------------------------------
+	// 1. 获取用户 ID
+	// ---------------------------------------------------------
+	userID := c.Param("id")
+
+	// ---------------------------------------------------------
+	// 2. 定义请求 DTO
+	//
+	// DTO 的作用：
+	//
+	// HTTP JSON
+	//    ↓
+	// UpdateUserRolesRequest
+	//    ↓
+	// Service
+	//
+	// Handler 不应该直接拿 gin.Context 的数据往 Service
+	// 里面传。
+	// ---------------------------------------------------------
+	var req dto.UpdateUserRolesRequest
+
+	// ---------------------------------------------------------
+	// 3. 解析 JSON
+	//
+	// 前端：
+	//
+	// {
+	//     "roles": ["admin", "editor"]
+	// }
+	//
+	// 会被解析成：
+	//
+	// req.Roles
+	//
+	// []string{"admin", "editor"}
+	// ---------------------------------------------------------
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// 这里继续使用你项目现有的参数错误处理方式。
+		response.Error(
+			c,
+			http.StatusBadRequest,
+			appErrors.ErrInvalidParams,
+			"invalid request body",
+		)
+		return
+	}
+
+	// ---------------------------------------------------------
+	// 4. 获取请求 Context
+	// ---------------------------------------------------------
+	ctx := c.Request.Context()
+
+	// ---------------------------------------------------------
+	// 5. 调用 Service
+	//
+	// Handler 到这里就应该停止处理业务。
+	//
+	// 它不需要知道：
+	//
+	// - Casbin 怎么保存角色
+	// - g 表示什么
+	// - roleRepo 怎么查询
+	// - 删除旧角色还是增加新角色
+	//
+	// 这些全部由 UserService 负责。
+	// ---------------------------------------------------------
+	if err := h.service.UpdateRoles(ctx, userID, req.Roles); err != nil {
+		response.AppError(
+			c,
+			err,
+		)
+		return
+	}
+
+	// ---------------------------------------------------------
+	// 6. 返回成功
+	//
+	// PUT 修改成功以后，我们可以返回一个简单的成功响应。
+	// ---------------------------------------------------------
 	response.Success(c, nil)
 }

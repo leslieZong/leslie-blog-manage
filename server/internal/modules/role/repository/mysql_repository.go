@@ -155,3 +155,51 @@ func (r *mysqlRoleRepository) Delete(
 		Delete(role).
 		Error
 }
+
+// FindByNames 根据多个角色名称查询角色。
+func (r *mysqlRoleRepository) FindByNames(
+	ctx context.Context,
+	names []string,
+) ([]*model.Role, error) {
+
+	// ==================================================
+	// 第一步：没有角色名称时，不需要访问数据库。
+	// ==================================================
+	//
+	// 例如：
+	//
+	// roles: []
+	//
+	// 表示用户没有任何角色。
+	//
+	// 这种情况下直接返回空数组即可。
+	if len(names) == 0 {
+		return []*model.Role{}, nil
+	}
+
+	// ==================================================
+	// 第二步：查询数据库。
+	// ==================================================
+	//
+	// GORM 会把：
+	//
+	// Where("name IN ?", names)
+	//
+	// 转换成类似：
+	//
+	// WHERE name IN (...)
+	//
+	var roles []*model.Role
+
+	err := r.db.
+		WithContext(ctx).
+		Where("name IN ?", names).
+		Find(&roles).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return roles, nil
+}

@@ -155,3 +155,59 @@ type UpdateUserRequest struct {
 	// 0 = 禁用
 	Status int8 `json:"status" validate:"oneof=0 1"`
 }
+
+// UserRoleResponse 表示用户当前拥有的角色。
+//
+// 注意：
+//
+// 这里不是 Casbin 原始数据。
+// 而是给前端使用的 API 数据。
+type UserRoleResponse struct {
+
+	// Role ID。
+	ID string `json:"id"`
+
+	// 角色名称。
+	//
+	// 例如：
+	//
+	// admin
+	// editor
+	// viewer
+	Name string `json:"name"`
+
+	// 管理员看到的角色名称。
+	//
+	// 例如：
+	//
+	// 编辑者
+	// 管理员
+	DisplayName string `json:"displayName"`
+}
+
+// UpdateUserRolesRequest 表示修改用户角色的请求。
+type UpdateUserRolesRequest struct {
+
+	// Roles 表示用户最终应该拥有的角色名称。
+	//
+	// 注意：
+	//
+	// 这是“最终状态”，
+	// 不是“新增角色列表”。
+	//
+	// 例如：
+	//
+	// 原来：
+	// editor
+	//
+	// 提交：
+	//
+	// ["viewer"]
+	//
+	// 最终：
+	// viewer
+	//
+	// 而不是：
+	// editor + viewer
+	Roles []string `json:"roles"`
+}

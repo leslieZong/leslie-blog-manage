@@ -20,6 +20,12 @@ func seedCasbin(
 		{"user", "update"},
 		{"user", "delete"},
 
+		// Role
+		{"role", "read"},
+		{"role", "create"},
+		{"role", "update"},
+		{"role", "delete"},
+
 		// Post
 		{"post", "read"},
 		{"post", "create"},

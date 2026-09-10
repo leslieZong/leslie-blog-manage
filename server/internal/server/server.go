@@ -8,6 +8,7 @@ import (
 	"leslie-blog-server/internal/middleware"
 	"leslie-blog-server/internal/modules/auth/handler"
 	authService "leslie-blog-server/internal/modules/auth/service"
+	roleRepository "leslie-blog-server/internal/modules/role/repository"
 	userHandler "leslie-blog-server/internal/modules/user/handler"
 	userRepository "leslie-blog-server/internal/modules/user/repository"
 	userService "leslie-blog-server/internal/modules/user/service"
@@ -66,12 +67,17 @@ func New(cfg *config.Config) (*Server, error) {
 	// ==================================================
 
 	userRepo := userRepository.NewUserRepository(db)
+	roleRepo := roleRepository.NewRoleRepository(db)
 
 	// ==================================================
 	// 5. 创建 User Service
 	// ==================================================
 
-	userSvc := userService.NewUserService(userRepo, enforcer)
+	userSvc := userService.NewUserService(
+		userRepo,
+		roleRepo,
+		enforcer,
+	)
 
 	// ==================================================
 	// 6. 创建 User Handler
