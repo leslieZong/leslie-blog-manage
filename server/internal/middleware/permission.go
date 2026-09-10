@@ -6,6 +6,7 @@ import (
 	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/pkg/auth"
 	"leslie-blog-server/internal/pkg/casbin"
+	"leslie-blog-server/internal/pkg/permission"
 	"leslie-blog-server/internal/response"
 
 	"github.com/gin-gonic/gin"
@@ -39,8 +40,7 @@ import (
 // 是否拥有 object + action 权限
 func Permission(
 	enforcer *casbin.Enforcer,
-	object string,
-	action string,
+	requiredPermission string,
 ) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
@@ -82,6 +82,20 @@ func Permission(
 		//     "read",
 		// )
 		// =========================================================
+		object, action, err :=
+			permission.Parse(requiredPermission)
+
+		if err != nil {
+			c.AbortWithStatusJSON(
+				http.StatusInternalServerError,
+				gin.H{
+					"code":    http.StatusInternalServerError,
+					"message": "invalid permission configuration",
+				},
+			)
+
+			return
+		}
 
 		allowed, err := enforcer.Enforce(
 			userID,

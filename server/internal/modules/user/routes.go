@@ -4,6 +4,7 @@ import (
 	"leslie-blog-server/internal/middleware"
 	"leslie-blog-server/internal/modules/user/handler"
 	"leslie-blog-server/internal/pkg/casbin"
+	"leslie-blog-server/internal/pkg/permission"
 
 	"github.com/gin-gonic/gin"
 )
@@ -33,8 +34,7 @@ func RegisterRoutes(
 		"/",
 		middleware.Permission(
 			enforcer,
-			"user",
-			"read",
+			permission.UserRead,
 		),
 		userHandler.List,
 	)
@@ -43,8 +43,7 @@ func RegisterRoutes(
 		"/:id",
 		middleware.Permission(
 			enforcer,
-			"user",
-			"read",
+			permission.UserRead,
 		),
 		userHandler.GetByID,
 	)
@@ -53,8 +52,7 @@ func RegisterRoutes(
 		"/",
 		middleware.Permission(
 			enforcer,
-			"user",
-			"create",
+			permission.UserCreate,
 		),
 		userHandler.Create,
 	)
@@ -63,8 +61,7 @@ func RegisterRoutes(
 		"/:id",
 		middleware.Permission(
 			enforcer,
-			"user",
-			"update",
+			permission.UserUpdate,
 		),
 		userHandler.Update,
 	)
@@ -73,8 +70,7 @@ func RegisterRoutes(
 		"/:id",
 		middleware.Permission(
 			enforcer,
-			"user",
-			"delete",
+			permission.UserDelete,
 		),
 		userHandler.Delete,
 	)
@@ -84,8 +80,7 @@ func RegisterRoutes(
 		"/:id/roles",
 		middleware.Permission(
 			enforcer,
-			"role",
-			"read",
+			permission.RoleRead,
 		),
 		userHandler.GetRoles,
 	)
@@ -95,8 +90,7 @@ func RegisterRoutes(
 		"/:id/roles",
 		middleware.Permission(
 			enforcer,
-			"role",
-			"update",
+			permission.RoleUpdate,
 		),
 		userHandler.UpdateRoles,
 	)
