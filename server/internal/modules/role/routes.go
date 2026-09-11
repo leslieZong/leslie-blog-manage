@@ -21,7 +21,7 @@ func RegisterRoutes(
 	//
 	// 查看角色列表。
 	roles.GET(
-		"/",
+		"",
 		middleware.Permission(
 			enforcer,
 			permission.RoleRead,
@@ -33,7 +33,7 @@ func RegisterRoutes(
 	//
 	// 创建角色。
 	roles.POST(
-		"/",
+		"",
 		middleware.Permission(
 			enforcer,
 			permission.RoleCreate,

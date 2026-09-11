@@ -1,4 +1,4 @@
-package constant
+package model
 
 // 系统角色名称。
 //

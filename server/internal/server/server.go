@@ -11,6 +11,9 @@ import (
 	"leslie-blog-server/internal/modules/auth/handler"
 	authService "leslie-blog-server/internal/modules/auth/service"
 	permissionRepository "leslie-blog-server/internal/modules/permission/repository"
+	postHandler "leslie-blog-server/internal/modules/post/handler"
+	postRepository "leslie-blog-server/internal/modules/post/repository"
+	postService "leslie-blog-server/internal/modules/post/service"
 	roleHandler "leslie-blog-server/internal/modules/role/handler"
 	roleRepository "leslie-blog-server/internal/modules/role/repository"
 	roleService "leslie-blog-server/internal/modules/role/service"
@@ -74,15 +77,16 @@ func New(cfg *config.Config) (*Server, error) {
 	)
 
 	// ==================================================
-	// 4. 创建 User Repository
+	// 4. 创建模块 Repository
 	// ==================================================
 
 	userRepo := userRepository.NewUserRepository(db)
 	roleRepo := roleRepository.NewRoleRepository(db)
 	permissionRepo := permissionRepository.NewPermissionRepository(db)
+	postRepo := postRepository.NewPostRepository(db)
 
 	// ==================================================
-	// 5. 创建 User Service
+	// 5. 创建模块 Service
 	// ==================================================
 
 	userSvc := userService.NewUserService(
@@ -95,18 +99,9 @@ func New(cfg *config.Config) (*Server, error) {
 		permissionRepo,
 		enforcer,
 	)
-
-	// ==================================================
-	// 6. 创建 User Handler
-	// ==================================================
-
-	userH := userHandler.NewUserHandler(userSvc)
-	roleH := roleHandler.NewRoleHandler(roleSvc)
-
-	// ==================================================
-	// 7. 创建 Auth Service
-	// ==================================================
-
+	postSvc := postService.NewPostService(
+		postRepo,
+	)
 	authSvc := authService.NewAuthService(
 		userRepo,
 		cfg.JWT.Secret,
@@ -115,10 +110,13 @@ func New(cfg *config.Config) (*Server, error) {
 	)
 
 	// ==================================================
-	// 8. 创建 Auth Handler
+	// 6. 创建模块 Handler
 	// ==================================================
 
+	userH := userHandler.NewUserHandler(userSvc)
 	authH := handler.NewAuthHandler(authSvc, userSvc)
+	roleH := roleHandler.NewRoleHandler(roleSvc)
+	postH := postHandler.NewPostHandler(postSvc)
 
 	// ==================================================
 	// 9. 创建 JWT Middleware
@@ -150,6 +148,7 @@ func New(cfg *config.Config) (*Server, error) {
 		userH,
 		authH,
 		roleH,
+		postH,
 		jwtMiddleware,
 		enforcer,
 	)

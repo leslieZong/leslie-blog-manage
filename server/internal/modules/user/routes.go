@@ -31,7 +31,7 @@ func RegisterRoutes(
 	// +
 	// user:read
 	users.GET(
-		"/",
+		"",
 		middleware.Permission(
 			enforcer,
 			permission.UserRead,
@@ -49,7 +49,7 @@ func RegisterRoutes(
 	)
 
 	users.POST(
-		"/",
+		"",
 		middleware.Permission(
 			enforcer,
 			permission.UserCreate,

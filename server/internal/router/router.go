@@ -3,6 +3,8 @@ package router
 import (
 	"leslie-blog-server/internal/modules/auth"
 	authHandler "leslie-blog-server/internal/modules/auth/handler"
+	"leslie-blog-server/internal/modules/post"
+	postHandler "leslie-blog-server/internal/modules/post/handler"
 	"leslie-blog-server/internal/modules/role"
 	roleHandler "leslie-blog-server/internal/modules/role/handler"
 	"leslie-blog-server/internal/modules/user"
@@ -20,6 +22,7 @@ type Router struct {
 
 	authHandler *authHandler.AuthHandler
 	roleHandler *roleHandler.RoleHandler
+	postHandler *postHandler.PostHandler
 
 	// jwtMiddleware 是 JWT 认证中间件。
 	//
@@ -35,6 +38,7 @@ func New(
 	userHandler *userHandler.UserHandler,
 	authHandler *authHandler.AuthHandler,
 	roleHandler *roleHandler.RoleHandler,
+	postHandler *postHandler.PostHandler,
 	jwtMiddleware gin.HandlerFunc,
 	enforcer *casbin.Enforcer,
 ) *Router {
@@ -44,6 +48,7 @@ func New(
 		userHandler:   userHandler,
 		authHandler:   authHandler,
 		roleHandler:   roleHandler,
+		postHandler:   postHandler,
 		jwtMiddleware: jwtMiddleware,
 		enforcer:      enforcer,
 	}
@@ -108,6 +113,12 @@ func (r *Router) Register() {
 	role.RegisterRoutes(
 		protected,
 		r.roleHandler,
+		r.enforcer,
+	)
+
+	post.RegisterRoutes(
+		protected,
+		r.postHandler,
 		r.enforcer,
 	)
 }

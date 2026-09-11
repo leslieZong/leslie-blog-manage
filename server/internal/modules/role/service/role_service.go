@@ -8,7 +8,6 @@ import (
 
 	appErrors "leslie-blog-server/internal/errors"
 	permissionRepo "leslie-blog-server/internal/modules/permission/repository"
-	constant "leslie-blog-server/internal/modules/role/const"
 	"leslie-blog-server/internal/modules/role/dto"
 	"leslie-blog-server/internal/modules/role/model"
 	"leslie-blog-server/internal/modules/role/repository"
@@ -273,7 +272,7 @@ func (s *roleService) Delete(
 	// admin 是系统内置超级管理员角色。
 	//
 	// 第一阶段不允许删除。
-	if constant.IsSystemRole(role.Name) {
+	if model.IsSystemRole(role.Name) {
 		return errors.New(
 			"cannot delete system role",
 		)
