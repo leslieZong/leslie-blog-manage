@@ -23,10 +23,9 @@ export interface PageResult<T> {
 export interface UserInfo {
   id: number
   username: string
-  nickname: string
-  avatar?: string
+  displayName: string
+  avatarUrl?: string
   email?: string
-  role?: string
 }
 
 export interface LoginParams {
@@ -35,8 +34,7 @@ export interface LoginParams {
 }
 
 export interface LoginResult {
-  token: string
-  userInfo: UserInfo
+  accessToken: string
 }
 
 // Dashboard 统计

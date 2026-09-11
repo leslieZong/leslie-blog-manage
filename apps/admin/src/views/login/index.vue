@@ -41,7 +41,7 @@ import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
-import { login as loginApi } from '@/api/auth'
+import { login as loginApi, getUserInfo as getUserInfoApi } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -65,8 +65,11 @@ async function onSubmit() {
   if (!valid) return
   loading.value = true
   try {
-    const { token, userInfo } = await loginApi(form)
-    authStore.setAuth(token, userInfo)
+    const { accessToken } = await loginApi(form)
+    authStore.setAuth(accessToken)
+    const res = await getUserInfoApi()
+    console.log("🚀 ~ onSubmit ~ res:", res)
+    // authStore.setUserInfo(userInfo)
     ElMessage.success('登录成功')
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.replace(redirect)

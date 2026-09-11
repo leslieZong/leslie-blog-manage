@@ -11,10 +11,12 @@ export const useAuthStore = defineStore('auth', {
     isLogin: (state) => !!state.token,
   },
   actions: {
-    setAuth(token: string, userInfo: UserInfo) {
+    setAuth(token: string) {
       this.token = token
-      this.userInfo = userInfo
       localStorage.setItem('token', token)
+    },
+    setUserInfo(userInfo: UserInfo) {
+      this.userInfo = userInfo
       localStorage.setItem('userInfo', JSON.stringify(userInfo))
     },
     clearAuth() {

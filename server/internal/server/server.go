@@ -70,6 +70,7 @@ func New(cfg *config.Config) (*Server, error) {
 	engine.Use(
 		middleware.Logger(),
 		middleware.Recovery(),
+		middleware.Cors(),
 	)
 
 	// ==================================================

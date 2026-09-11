@@ -10,5 +10,5 @@ export function logout() {
 }
 
 export function getUserInfo() {
-  return request.get<unknown, UserInfo>('/auth/user')
+  return request.get<unknown, UserInfo>('/auth/me')
 }
