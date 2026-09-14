@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
 
 	appErrors "leslie-blog-server/internal/errors"
@@ -107,8 +108,8 @@ func (s *userService) GetByID(
 	if id == "" {
 		return nil, appErrors.New(
 			appErrors.ErrInvalidParams,
-			400,
-			"user id cannot be empty",
+			http.StatusBadRequest,
+			appErrors.ErrUserIDCannotBeEmpty,
 		)
 	}
 
@@ -118,14 +119,14 @@ func (s *userService) GetByID(
 
 		// 数据库没有找到用户。
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, appErrors.ErrUserNotFound
+			return nil, errors.New(appErrors.ErrUserNotFound)
 		}
 
 		// 其他数据库错误。
 		return nil, appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to find user",
+			http.StatusInternalServerError,
+			appErrors.ErrFailedToFindUserMessage,
 			err,
 		)
 	}
@@ -142,8 +143,8 @@ func (s *userService) GetByUsername(
 	if username == "" {
 		return nil, appErrors.New(
 			appErrors.ErrInvalidParams,
-			400,
-			"username cannot be empty",
+			http.StatusBadRequest,
+			appErrors.ErrUsernameCannotBeEmpty,
 		)
 	}
 
@@ -155,13 +156,13 @@ func (s *userService) GetByUsername(
 	if err != nil {
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, appErrors.ErrUserNotFound
+			return nil, errors.New(appErrors.ErrUserNotFound)
 		}
 
 		return nil, appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to find user",
+			http.StatusInternalServerError,
+			appErrors.ErrFailedToFindUserMessage,
 			err,
 		)
 	}
@@ -178,24 +179,24 @@ func (s *userService) Create(
 	if user == nil {
 		return appErrors.New(
 			appErrors.ErrInvalidParams,
-			400,
-			"user cannot be nil",
+			http.StatusBadRequest,
+			appErrors.ErrUserCannotBeNil,
 		)
 	}
 
 	if user.Username == "" {
 		return appErrors.New(
 			appErrors.ErrInvalidParams,
-			400,
-			"username cannot be empty",
+			http.StatusBadRequest,
+			appErrors.ErrUsernameCannotBeEmpty,
 		)
 	}
 
 	if user.PasswordHash == "" {
 		return appErrors.New(
 			appErrors.ErrInvalidParams,
-			400,
-			"password hash cannot be empty",
+			http.StatusBadRequest,
+			appErrors.ErrPasswordCannotBeEmpty,
 		)
 	}
 
@@ -214,8 +215,8 @@ func (s *userService) Create(
 
 		return appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to check username",
+			http.StatusInternalServerError,
+			appErrors.ErrFailedToCheckUsernameMessage,
 			err,
 		)
 	}
@@ -224,8 +225,8 @@ func (s *userService) Create(
 	if err := s.repo.Create(ctx, user); err != nil {
 		return appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to create user",
+			http.StatusInternalServerError,
+			appErrors.ErrFailedToCreateUserMessage,
 			err,
 		)
 	}
@@ -267,8 +268,10 @@ func (s *userService) CreateFromRequest(
 	// =========================================================
 
 	if req == nil {
-		return nil, errors.New(
-			"create user request cannot be nil",
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			appErrors.ErrCreateUserRequestCannotBeNil,
 		)
 	}
 
@@ -356,14 +359,18 @@ func (s *userService) Update(
 	// =========================================================
 
 	if id == "" {
-		return nil, errors.New(
-			"user id cannot be empty",
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			appErrors.ErrUserIDCannotBeEmpty,
 		)
 	}
 
 	if req == nil {
-		return nil, errors.New(
-			"update user request cannot be nil",
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			appErrors.ErrUpdateUserRequestCannotBeNil,
 		)
 	}
 
@@ -381,7 +388,7 @@ func (s *userService) Update(
 			err,
 			gorm.ErrRecordNotFound,
 		) {
-			return nil, appErrors.ErrUserNotFound
+			return nil, errors.New(appErrors.ErrUserNotFound)
 		}
 
 		return nil, err
@@ -439,11 +446,19 @@ func (s *userService) Delete(
 ) error {
 
 	if operatorUserID == "" {
-		return errors.New("operator user id cannot be empty")
+		return appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			appErrors.ErrOperatorUserIDCannotBeEmpty,
+		)
 	}
 
 	if targetUserID == "" {
-		return errors.New("target user id cannot be empty")
+		return appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			appErrors.ErrTargetUserIDCannotBeEmpty,
+		)
 	}
 
 	if operatorUserID == targetUserID {
@@ -453,7 +468,7 @@ func (s *userService) Delete(
 	user, err := s.repo.FindByID(ctx, targetUserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return appErrors.ErrUserNotFound
+			return errors.New(appErrors.ErrUserNotFound)
 		}
 
 		return err
@@ -483,12 +498,11 @@ func (s *userService) GetRoles(
 	if userID == "" {
 		return nil, appErrors.New(
 			appErrors.ErrInvalidParams,
-			400,
-			"user id cannot be empty",
+			http.StatusBadRequest,
+			appErrors.ErrUserIDCannotBeEmpty,
 		)
 	}
 
-	// ==================================================
 	// 2. 确认用户存在
 	// ==================================================
 	//
@@ -521,16 +535,16 @@ func (s *userService) GetRoles(
 		) {
 			return nil, appErrors.New(
 				appErrors.ErrNotFound,
-				404,
-				"user not found",
+				http.StatusNotFound,
+				appErrors.ErrUserNotFound,
 			)
 		}
 
 		// 数据库等其他错误。
 		return nil, appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to find user",
+			http.StatusInternalServerError,
+			appErrors.ErrUserNotFound,
 			err,
 		)
 	}
@@ -557,8 +571,8 @@ func (s *userService) GetRoles(
 	if err != nil {
 		return nil, appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to get user roles",
+			http.StatusInternalServerError,
+			appErrors.ErrUserNotFound,
 			err,
 		)
 	}
@@ -622,8 +636,8 @@ func (s *userService) GetRoles(
 	if err != nil {
 		return nil, appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to find roles",
+			http.StatusInternalServerError,
+			appErrors.ErrUserNotFound,
 			err,
 		)
 	}
@@ -696,8 +710,8 @@ func (s *userService) UpdateRoles(
 	if userID == "" {
 		return appErrors.New(
 			appErrors.ErrInvalidParams,
-			400,
-			"user id cannot be empty",
+			http.StatusBadRequest,
+			appErrors.ErrUserIDCannotBeEmpty,
 		)
 	}
 
@@ -718,15 +732,15 @@ func (s *userService) UpdateRoles(
 		) {
 			return appErrors.New(
 				appErrors.ErrNotFound,
-				404,
-				"user not found",
+				http.StatusNotFound,
+				appErrors.ErrUserNotFound,
 			)
 		}
 
 		return appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to find user",
+			http.StatusInternalServerError,
+			appErrors.ErrUserNotFound,
 			err,
 		)
 	}
@@ -781,8 +795,8 @@ func (s *userService) UpdateRoles(
 	if err != nil {
 		return appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to find roles",
+			http.StatusInternalServerError,
+			appErrors.ErrUserNotFound,
 			err,
 		)
 	}
@@ -794,8 +808,8 @@ func (s *userService) UpdateRoles(
 	if len(roles) != len(uniqueNames) {
 		return appErrors.New(
 			appErrors.ErrInvalidParams,
-			400,
-			"one or more roles do not exist",
+			http.StatusBadRequest,
+			appErrors.ErrOneOrMoreRolesDoNotExist,
 		)
 	}
 
@@ -810,8 +824,8 @@ func (s *userService) UpdateRoles(
 	if err != nil {
 		return appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to get current user roles",
+			http.StatusInternalServerError,
+			appErrors.ErrUserNotFound,
 			err,
 		)
 	}
@@ -829,8 +843,8 @@ func (s *userService) UpdateRoles(
 
 			return appErrors.Wrap(
 				appErrors.ErrInternalServer,
-				500,
-				"failed to remove current user role",
+				http.StatusInternalServerError,
+				appErrors.ErrFailedToRemoveCurrentUserRoleMessage,
 				err,
 			)
 		}
@@ -849,8 +863,8 @@ func (s *userService) UpdateRoles(
 
 			return appErrors.Wrap(
 				appErrors.ErrInternalServer,
-				500,
-				"failed to assign user role",
+				http.StatusInternalServerError,
+				appErrors.ErrFailedToAssignUserRoleMessage,
 				err,
 			)
 		}

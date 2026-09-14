@@ -50,12 +50,6 @@ func RegisterRoutes(
 		postHandler.GetByID,
 	)
 
-	posts.GET(
-		"/slug/:slug",
-		middleware.Permission(enforcer, permission.PostRead),
-		postHandler.GetBySlug,
-	)
-
 	// 修改文章。
 	posts.PUT(
 		"/:id",

@@ -80,7 +80,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			c,
 			http.StatusBadRequest,
 			appErrors.ErrInvalidParams,
-			"invalid request body",
+			appErrors.ErrInvalidRequestBody,
 		)
 
 		return
@@ -93,14 +93,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	)
 
 	if err != nil {
-
-		response.Error(
+		response.AppError(
 			c,
-			http.StatusUnauthorized,
-			appErrors.ErrUnauthorized,
-			err.Error(),
+			err,
 		)
-
 		return
 	}
 

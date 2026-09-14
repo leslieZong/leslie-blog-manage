@@ -116,7 +116,7 @@ func (h *UserHandler) List(c *gin.Context) {
 				c,
 				http.StatusBadRequest,
 				appErrors.ErrInvalidParams,
-				"invalid status",
+				appErrors.ErrInvalidStatusMessage,
 			)
 
 			return
@@ -142,7 +142,6 @@ func (h *UserHandler) List(c *gin.Context) {
 	)
 
 	if err != nil {
-
 		response.AppError(
 			c,
 			err,
@@ -197,7 +196,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 			c,
 			http.StatusBadRequest,
 			appErrors.ErrInvalidParams,
-			"invalid request body",
+			appErrors.ErrInvalidRequestBody,
 		)
 
 		return
@@ -240,7 +239,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 				c,
 				http.StatusConflict,
 				appErrors.ErrConflict,
-				"username already exists",
+				appErrors.ErrUsernameExistsMessage,
 			)
 
 			return
@@ -251,7 +250,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 			c,
 			http.StatusInternalServerError,
 			appErrors.ErrInternalServer,
-			"internal server error",
+			appErrors.ErrInternalServerMessage,
 		)
 
 		return
@@ -284,7 +283,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 			c,
 			http.StatusBadRequest,
 			appErrors.ErrInvalidParams,
-			"id is required",
+			appErrors.ErrIDIsRequiredMessage,
 		)
 
 		return
@@ -302,7 +301,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 			c,
 			http.StatusBadRequest,
 			appErrors.ErrInvalidParams,
-			"invalid request body",
+			appErrors.ErrInvalidRequestBody,
 		)
 
 		return
@@ -339,14 +338,14 @@ func (h *UserHandler) Update(c *gin.Context) {
 		// 用户不存在。
 		if errors.Is(
 			err,
-			appErrors.ErrUserNotFound,
+			errors.New(appErrors.ErrUserNotFound),
 		) {
 
 			response.Error(
 				c,
 				http.StatusNotFound,
 				appErrors.ErrNotFound,
-				"user not found",
+				appErrors.ErrFailedToFindUserMessage,
 			)
 
 			return
@@ -357,7 +356,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 			c,
 			http.StatusInternalServerError,
 			appErrors.ErrInternalServer,
-			"internal server error",
+			appErrors.ErrInternalServerMessage,
 		)
 
 		return
@@ -424,7 +423,7 @@ func (h *UserHandler) Delete(c *gin.Context) {
 		// 用户不存在。
 		if errors.Is(
 			err,
-			appErrors.ErrUserNotFound,
+			errors.New(appErrors.ErrUserNotFound),
 		) {
 			response.Error(
 				c,
@@ -440,7 +439,7 @@ func (h *UserHandler) Delete(c *gin.Context) {
 			c,
 			http.StatusInternalServerError,
 			appErrors.ErrInternalServer,
-			"delete user failed",
+			appErrors.ErrDeleteUserFailedMessage,
 		)
 		return
 	}
@@ -580,7 +579,7 @@ func (h *UserHandler) UpdateRoles(c *gin.Context) {
 			c,
 			http.StatusBadRequest,
 			appErrors.ErrInvalidParams,
-			"invalid request body",
+			appErrors.ErrInvalidRequestBody,
 		)
 		return
 	}

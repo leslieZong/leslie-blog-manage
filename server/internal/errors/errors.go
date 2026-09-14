@@ -34,6 +34,35 @@ const (
 	ErrInternalServer = 50001
 )
 
+const (
+	// 定义业务错误信息
+	ErrUserIDCannotBeEmpty                  = "user id cannot be empty"
+	ErrInvalidRequestBody                   = "invalid request body"
+	ErrLoginRequestCannotBeNil              = "login request cannot be nil"
+	ErrUsernameCannotBeEmpty                = "username cannot be empty"
+	ErrPasswordCannotBeEmpty                = "password cannot be empty"
+	ErrInternalServerMessage                = "internal server error"
+	ErrInvalidCredentialsMessage            = "invalid username or password"
+	ErrUserDisabledMessage                  = "user is disabled"
+	ErrFailedToGenerateAccessTokenMessage   = "failed to generate access token"
+	ErrFailedToFindUserMessage              = "failed to find user"
+	ErrInvalidStatusMessage                 = "invalid status"
+	ErrUsernameExistsMessage                = "username already exists"
+	ErrIDIsRequiredMessage                  = "id is required"
+	ErrDeleteUserFailedMessage              = "delete user failed"
+	ErrUserCannotBeNil                      = "user cannot be nil"
+	ErrFailedToCheckUsernameMessage         = "failed to check username"
+	ErrFailedToCreateUserMessage            = "failed to create user"
+	ErrCreateUserRequestCannotBeNil         = "create user request cannot be nil"
+	ErrUpdateUserRequestCannotBeNil         = "update user request cannot be nil"
+	ErrOperatorUserIDCannotBeEmpty          = "operator user id cannot be empty"
+	ErrTargetUserIDCannotBeEmpty            = "target user id cannot be empty"
+	ErrUserNotFound                         = "user not found"
+	ErrOneOrMoreRolesDoNotExist             = "one or more roles do not exist"
+	ErrFailedToRemoveCurrentUserRoleMessage = "failed to remove current user role"
+	ErrFailedToAssignUserRoleMessage        = "failed to assign user role"
+)
+
 // AppError 是 Leslie Blog 项目统一的业务错误。
 //
 // 它比普通 errors.New() 多保存了一些信息：
@@ -122,11 +151,6 @@ func Wrap(
 // 业务错误
 // ============================================================
 
-// ErrUserNotFound 用户不存在。
-var ErrUserNotFound = errors.New(
-	"user not found",
-)
-
 // ErrUsernameExists 用户名已经存在。
 var ErrUsernameExists = errors.New(
 	"username already exists",
@@ -153,14 +177,8 @@ var ErrRoleNameExists = errors.New(
 // 而统一返回：
 //
 //	invalid username or password
-var ErrInvalidCredentials = errors.New(
-	"invalid username or password",
-)
 
 // ErrUserDisabled 用户被禁用。
-var ErrUserDisabled = errors.New(
-	"user is disabled",
-)
 
 var ErrCannotDeleteSelf = errors.New(
 	"cannot delete yourself",

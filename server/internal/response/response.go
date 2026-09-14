@@ -16,11 +16,16 @@ type Response struct {
 	Data    any    `json:"data"`
 }
 
+const (
+	SuccessCode    = 0
+	SuccessMessage = "success"
+)
+
 // Success 返回成功响应。
 func Success(c *gin.Context, data any) {
 	c.JSON(http.StatusOK, Response{
-		Code:    0,
-		Message: "success",
+		Code:    SuccessCode,
+		Message: SuccessMessage,
 		Data:    data,
 	})
 }
@@ -77,7 +82,7 @@ func AppError(c *gin.Context, err error) {
 		http.StatusInternalServerError,
 		Response{
 			Code:    appErrors.ErrInternalServer,
-			Message: "internal server error",
+			Message: appErrors.ErrInternalServerMessage,
 			Data:    nil,
 		},
 	)

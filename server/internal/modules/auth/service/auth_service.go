@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"net/http"
 	"time"
 
 	appErrors "leslie-blog-server/internal/errors"
@@ -55,24 +56,24 @@ func (s *authService) Login(
 	if req == nil {
 		return nil, appErrors.New(
 			appErrors.ErrInvalidParams,
-			400,
-			"login request cannot be nil",
+			http.StatusBadRequest,
+			appErrors.ErrLoginRequestCannotBeNil,
 		)
 	}
 
 	if req.Username == "" {
 		return nil, appErrors.New(
 			appErrors.ErrInvalidParams,
-			400,
-			"username cannot be empty",
+			http.StatusBadRequest,
+			appErrors.ErrUsernameCannotBeEmpty,
 		)
 	}
 
 	if req.Password == "" {
 		return nil, appErrors.New(
 			appErrors.ErrInvalidParams,
-			400,
-			"password cannot be empty",
+			http.StatusBadRequest,
+			appErrors.ErrPasswordCannotBeEmpty,
 		)
 	}
 
@@ -91,14 +92,18 @@ func (s *authService) Login(
 		// “用户不存在”和“密码错误”
 		// 对外统一返回认证失败。
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, appErrors.ErrInvalidCredentials
+			return nil, appErrors.New(
+				appErrors.ErrInvalidParams,
+				http.StatusBadRequest,
+				appErrors.ErrInvalidCredentialsMessage,
+			)
 		}
 
 		// 真正的数据库错误不能伪装成 401。
 		return nil, appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to find user",
+			http.StatusInternalServerError,
+			appErrors.ErrFailedToFindUserMessage,
 			err,
 		)
 	}
@@ -108,7 +113,11 @@ func (s *authService) Login(
 	// ==================================================
 
 	if user.Status != 1 {
-		return nil, appErrors.ErrUserDisabled
+		return nil, appErrors.New(
+			appErrors.ErrUnauthorized,
+			http.StatusBadRequest,
+			appErrors.ErrUserDisabledMessage,
+		)
 	}
 
 	// ==================================================
@@ -119,7 +128,11 @@ func (s *authService) Login(
 		user.PasswordHash,
 		req.Password,
 	) {
-		return nil, appErrors.ErrInvalidCredentials
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			appErrors.ErrInvalidCredentialsMessage,
+		)
 	}
 
 	// ==================================================
@@ -137,8 +150,8 @@ func (s *authService) Login(
 	if err != nil {
 		return nil, appErrors.Wrap(
 			appErrors.ErrInternalServer,
-			500,
-			"failed to generate access token",
+			http.StatusInternalServerError,
+			appErrors.ErrFailedToGenerateAccessTokenMessage,
 			err,
 		)
 	}
