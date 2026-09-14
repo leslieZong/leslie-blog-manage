@@ -54,6 +54,11 @@ type PostRepository interface {
 		post *model.Post,
 	) error
 
+	// Public：只查询已经发布的文章
+	FindPublished(
+		ctx context.Context,
+	) ([]*model.Post, error)
+
 	// Delete 删除文章。
 	//
 	// 注意：

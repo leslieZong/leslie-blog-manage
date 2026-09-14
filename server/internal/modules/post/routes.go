@@ -71,3 +71,29 @@ func RegisterRoutes(
 		postHandler.Publish,
 	)
 }
+
+func RegisterPublicRoutes(
+	router *gin.RouterGroup,
+	postHandler *handler.PostHandler,
+) {
+	// 创建 Public 文章路由分组。
+	//
+	// router 本身应该已经是：
+	//
+	// /api/v1
+	//
+	// 所以这里再加：
+	//
+	// /posts
+	//
+	// 最终：
+	//
+	// /api/v1/posts
+	posts := router.Group("/posts")
+
+	// 获取已发布文章列表。
+	posts.GET(
+		"",
+		postHandler.ListPublished,
+	)
+}

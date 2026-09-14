@@ -137,6 +137,27 @@ func (r *gormPostRepository) FindAll(
 	return posts, nil
 }
 
+func (r *gormPostRepository) FindPublished(
+	ctx context.Context,
+) ([]*model.Post, error) {
+
+	var posts []*model.Post
+
+	err := r.db.
+		WithContext(ctx).
+		Where("status = ?", "published").
+		Where("deleted_at IS NULL").
+		Order("published_at DESC").
+		Find(&posts).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
+}
+
 // Update 更新文章。
 func (r *gormPostRepository) Update(
 	ctx context.Context,

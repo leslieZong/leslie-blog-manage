@@ -46,6 +46,11 @@ type PostService interface {
 		ctx context.Context,
 	) ([]*model.Post, error)
 
+	// Public
+	ListPublished(
+		ctx context.Context,
+	) ([]*model.Post, error)
+
 	// Update 更新文章。
 	Update(
 		ctx context.Context,
@@ -202,6 +207,14 @@ func (s *postService) GetByID(
 	}
 
 	post, err := s.repo.FindByID(ctx, id)
+
+	// =========================================================
+	// 第三步：判断文章是否不存在
+	// =========================================================
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("post not found")
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -222,6 +235,11 @@ func (s *postService) GetBySlug(
 	}
 
 	post, err := s.repo.FindBySlug(ctx, slug)
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("post not found")
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -235,6 +253,19 @@ func (s *postService) List(
 ) ([]*model.Post, error) {
 
 	posts, err := s.repo.FindAll(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
+}
+
+func (s *postService) ListPublished(
+	ctx context.Context,
+) ([]*model.Post, error) {
+
+	posts, err := s.repo.FindPublished(ctx)
 
 	if err != nil {
 		return nil, err

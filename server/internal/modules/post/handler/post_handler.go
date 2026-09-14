@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/post/dto"
 	"leslie-blog-server/internal/modules/post/service"
 	"leslie-blog-server/internal/pkg/auth"
 	"leslie-blog-server/internal/response"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -97,13 +99,7 @@ func (h *PostHandler) Create(c *gin.Context) {
 	)
 
 	if err != nil {
-
-		// 暂时使用简单响应。
-		//
-		// 后面需要统一接入项目已有错误码体系。
-		c.JSON(400, gin.H{
-			"message": err.Error(),
-		})
+		response.AppError(c, err)
 
 		return
 	}
@@ -142,10 +138,12 @@ func (h *PostHandler) GetByID(c *gin.Context) {
 
 	if err != nil {
 
-		c.JSON(404, gin.H{
-			"message": "文章不存在",
-		})
-
+		response.Error(
+			c,
+			http.StatusNotFound,
+			errors.ErrPostNotFound,
+			"post not found",
+		)
 		return
 	}
 
@@ -165,9 +163,26 @@ func (h *PostHandler) List(c *gin.Context) {
 
 	if err != nil {
 
-		c.JSON(500, gin.H{
-			"message": "获取文章列表失败",
-		})
+		response.AppError(c, err)
+
+		return
+	}
+
+	res := dto.FromModelList(posts)
+
+	response.Success(c, res)
+}
+
+// ListPublished 获取已发布文章列表。
+func (h *PostHandler) ListPublished(c *gin.Context) {
+
+	ctx := c.Request.Context()
+
+	posts, err := h.service.ListPublished(ctx)
+
+	if err != nil {
+
+		response.AppError(c, err)
 
 		return
 	}
@@ -194,9 +209,7 @@ func (h *PostHandler) Update(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 
-		c.JSON(400, gin.H{
-			"message": "请求参数错误",
-		})
+		response.AppError(c, err)
 
 		return
 	}

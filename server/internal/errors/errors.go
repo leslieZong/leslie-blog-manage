@@ -25,13 +25,43 @@ import (
 // 前端既可以根据 HTTP Status 判断大类别，
 // 也可以根据 Code 判断具体业务错误。
 const (
+	// =============================
 	// 通用错误
-	ErrInvalidParams  = 40001
-	ErrUnauthorized   = 40101
-	ErrForbidden      = 40301
-	ErrNotFound       = 40401
-	ErrConflict       = 40901
+	// =============================
+
+	// ErrInvalidParams 参数错误
+	ErrInvalidParams = 40001
+
+	// ErrUnauthorized 未登录
+	ErrUnauthorized = 40101
+
+	// ErrForbidden 没有权限
+	ErrForbidden = 40301
+
+	// ErrNotFound 通用资源不存在
+	ErrNotFound = 40401
+
+	// ErrConflict 冲突错误
+	ErrConflict = 40901
+
+	// ErrInternalServer 系统内部错误
 	ErrInternalServer = 50001
+
+	// =============================
+	// Post 文章相关错误
+	// =============================
+
+	// ErrPostNotFound 文章不存在
+	ErrPostNotFound = 40401
+
+	// ErrPostSlugExists 文章 Slug 已存在
+	ErrPostSlugExists = 40002
+
+	// ErrPostAlreadyPublished 文章已经发布
+	ErrPostAlreadyPublished = 40003
+
+	// ErrPostArchived 归档文章不能执行当前操作
+	ErrPostArchived = 40004
 )
 
 const (

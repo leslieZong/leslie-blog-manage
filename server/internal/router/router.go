@@ -68,6 +68,10 @@ func (r *Router) Register() {
 	// ==================================================
 
 	v1 := r.engine.Group("/api/v1")
+	post.RegisterPublicRoutes(
+		v1,
+		r.postHandler,
+	)
 
 	// 当前还没有公共 API。
 	//
