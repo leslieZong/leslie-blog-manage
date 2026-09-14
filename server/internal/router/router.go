@@ -20,9 +20,10 @@ type Router struct {
 
 	userHandler *userHandler.UserHandler
 
-	authHandler *authHandler.AuthHandler
-	roleHandler *roleHandler.RoleHandler
-	postHandler *postHandler.PostHandler
+	authHandler       *authHandler.AuthHandler
+	roleHandler       *roleHandler.RoleHandler
+	postHandler       *postHandler.PostHandler
+	publicPostHandler *postHandler.PublicPostHandler
 
 	// jwtMiddleware 是 JWT 认证中间件。
 	//
@@ -39,18 +40,20 @@ func New(
 	authHandler *authHandler.AuthHandler,
 	roleHandler *roleHandler.RoleHandler,
 	postHandler *postHandler.PostHandler,
+	publicPostHandler *postHandler.PublicPostHandler,
 	jwtMiddleware gin.HandlerFunc,
 	enforcer *casbin.Enforcer,
 ) *Router {
 
 	return &Router{
-		engine:        engine,
-		userHandler:   userHandler,
-		authHandler:   authHandler,
-		roleHandler:   roleHandler,
-		postHandler:   postHandler,
-		jwtMiddleware: jwtMiddleware,
-		enforcer:      enforcer,
+		engine:            engine,
+		userHandler:       userHandler,
+		authHandler:       authHandler,
+		roleHandler:       roleHandler,
+		postHandler:       postHandler,
+		publicPostHandler: publicPostHandler,
+		jwtMiddleware:     jwtMiddleware,
+		enforcer:          enforcer,
 	}
 }
 
@@ -70,7 +73,7 @@ func (r *Router) Register() {
 	v1 := r.engine.Group("/api/v1")
 	post.RegisterPublicRoutes(
 		v1,
-		r.postHandler,
+		r.publicPostHandler,
 	)
 
 	// 当前还没有公共 API。

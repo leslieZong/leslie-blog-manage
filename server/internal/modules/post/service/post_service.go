@@ -3,9 +3,11 @@ package service
 import (
 	"context"
 	"errors"
+	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/post/model"
 	"leslie-blog-server/internal/modules/post/repository"
 	"leslie-blog-server/internal/pkg/ulid"
+	"net/http"
 	"strings"
 	"time"
 
@@ -50,6 +52,17 @@ type PostService interface {
 	ListPublished(
 		ctx context.Context,
 	) ([]*model.Post, error)
+
+	// Public API 专用
+	GetPublicByID(
+		ctx context.Context,
+		id string,
+	) (*model.Post, error)
+
+	GetPublicBySlug(
+		ctx context.Context,
+		slug string,
+	) (*model.Post, error)
 
 	// Update 更新文章。
 	Update(
@@ -122,19 +135,36 @@ func (s *postService) Create(
 	content = strings.TrimSpace(content)
 
 	if title == "" {
-		return nil, errors.New("文章标题不能为空")
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"post title is empty",
+		)
+
 	}
 
 	if slug == "" {
-		return nil, errors.New("文章 slug 不能为空")
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"post slug is empty",
+		)
 	}
 
 	if content == "" {
-		return nil, errors.New("文章内容不能为空")
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"post content is empty",
+		)
 	}
 
 	if authorID == "" {
-		return nil, errors.New("文章作者不能为空")
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"post author ID is empty",
+		)
 	}
 
 	// -------------------------------------------------------
@@ -144,12 +174,21 @@ func (s *postService) Create(
 	existingPost, err := s.repo.FindBySlug(ctx, slug)
 
 	if err == nil && existingPost != nil {
-		return nil, errors.New("文章 slug 已存在")
+		return nil, appErrors.New(
+			appErrors.ErrPostSlugExists,
+			http.StatusConflict,
+			"post slug already exists",
+		)
 	}
 
 	// 没有找到记录，这是正常情况，可以继续创建。
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
+		return nil, appErrors.Wrap(
+			appErrors.ErrInternalServer,
+			http.StatusInternalServerError,
+			"failed to check post slug",
+			err,
+		)
 	}
 
 	// -------------------------------------------------------
@@ -203,7 +242,11 @@ func (s *postService) GetByID(
 	id = strings.TrimSpace(id)
 
 	if id == "" {
-		return nil, errors.New("文章 ID 不能为空")
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"post ID 不能为空",
+		)
 	}
 
 	post, err := s.repo.FindByID(ctx, id)
@@ -212,11 +255,20 @@ func (s *postService) GetByID(
 	// 第三步：判断文章是否不存在
 	// =========================================================
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, errors.New("post not found")
+		return nil, appErrors.New(
+			appErrors.ErrPostNotFound,
+			http.StatusNotFound,
+			"post not found",
+		)
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, appErrors.Wrap(
+			appErrors.ErrInternalServer,
+			http.StatusInternalServerError,
+			"failed to query post",
+			err,
+		)
 	}
 
 	return post, nil
@@ -231,17 +283,30 @@ func (s *postService) GetBySlug(
 	slug = strings.TrimSpace(slug)
 
 	if slug == "" {
-		return nil, errors.New("文章 slug 不能为空")
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"post slug 不能为空",
+		)
 	}
 
 	post, err := s.repo.FindBySlug(ctx, slug)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, errors.New("post not found")
+		return nil, appErrors.New(
+			appErrors.ErrPostNotFound,
+			http.StatusNotFound,
+			"post not found",
+		)
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, appErrors.Wrap(
+			appErrors.ErrInternalServer,
+			http.StatusInternalServerError,
+			"failed to query post",
+			err,
+		)
 	}
 
 	return post, nil
@@ -268,10 +333,147 @@ func (s *postService) ListPublished(
 	posts, err := s.repo.FindPublished(ctx)
 
 	if err != nil {
-		return nil, err
+		return nil, appErrors.Wrap(
+			appErrors.ErrInternalServer,
+			http.StatusInternalServerError,
+			"failed to query published posts",
+			err,
+		)
 	}
 
 	return posts, nil
+}
+
+// GetPublicByID
+//
+// Public API 根据 ID 查询文章。
+//
+// 与 Admin 的 GetByID 最大区别：
+//
+// Admin:
+//
+//	可以查看 draft / published / archived
+//
+// Public:
+//
+//	只能查看 published
+//
+// 因此这里必须进行状态检查。
+func (s *postService) GetPublicByID(
+	ctx context.Context,
+	id string,
+) (*model.Post, error) {
+
+	if id == "" {
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"post id 不能为空",
+		)
+	}
+
+	post, err := s.repo.FindByID(ctx, id)
+
+	// 数据库没有找到
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, appErrors.New(
+			appErrors.ErrPostNotFound,
+			http.StatusNotFound,
+			"post not found",
+		)
+	}
+
+	// 数据库发生其他错误
+	if err != nil {
+		return nil, appErrors.Wrap(
+			appErrors.ErrInternalServer,
+			http.StatusInternalServerError,
+			"failed to query post",
+			err,
+		)
+	}
+
+	// Public API 只允许 published
+	if post.Status != string(model.PostStatusPublished) {
+		return nil, appErrors.New(
+			appErrors.ErrPostNotFound,
+			http.StatusNotFound,
+			"post not found",
+		)
+	}
+
+	// 防止软删除文章被公开访问
+	if post.DeletedAt.Valid {
+		return nil, appErrors.New(
+			appErrors.ErrPostNotFound,
+			http.StatusNotFound,
+			"post not found",
+		)
+	}
+
+	return post, nil
+}
+
+// GetPublicBySlug
+//
+// 根据 slug 获取博客前台文章。
+//
+// 例如：
+//
+// /api/v1/posts/slug/go-start
+//
+// 只有 published 状态的文章才允许返回。
+func (s *postService) GetPublicBySlug(
+	ctx context.Context,
+	slug string,
+) (*model.Post, error) {
+
+	if slug == "" {
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"post slug cannot be empty",
+		)
+	}
+
+	post, err := s.repo.FindBySlug(ctx, slug)
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, appErrors.New(
+			appErrors.ErrPostNotFound,
+			http.StatusNotFound,
+			"post not found",
+		)
+	}
+
+	if err != nil {
+		return nil, appErrors.Wrap(
+			appErrors.ErrInternalServer,
+			http.StatusInternalServerError,
+			"failed to query post",
+			err,
+		)
+	}
+
+	// 非 published 状态对 Public API 不可见
+	if post.Status != string(model.PostStatusPublished) {
+		return nil, appErrors.New(
+			appErrors.ErrPostNotFound,
+			http.StatusNotFound,
+			"post not found",
+		)
+	}
+
+	// 已软删除的数据也不能公开
+	if post.DeletedAt.Valid {
+		return nil, appErrors.New(
+			appErrors.ErrPostNotFound,
+			http.StatusNotFound,
+			"post not found",
+		)
+	}
+
+	return post, nil
 }
 
 // Update 更新文章内容。
@@ -384,7 +586,11 @@ func (s *postService) Publish(
 	id = strings.TrimSpace(id)
 
 	if id == "" {
-		return nil, errors.New("文章 ID 不能为空")
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"post ID 不能为空",
+		)
 	}
 
 	// -------------------------------------------------------
@@ -394,7 +600,12 @@ func (s *postService) Publish(
 	post, err := s.repo.FindByID(ctx, id)
 
 	if err != nil {
-		return nil, err
+		return nil, appErrors.Wrap(
+			appErrors.ErrInternalServer,
+			http.StatusInternalServerError,
+			"failed to query post",
+			err,
+		)
 	}
 
 	// -------------------------------------------------------
@@ -404,11 +615,19 @@ func (s *postService) Publish(
 	status := model.PostStatus(post.Status)
 
 	if status == model.PostStatusArchived {
-		return nil, errors.New("已归档文章不能直接发布")
+		return nil, appErrors.New(
+			appErrors.ErrPostArchived,
+			http.StatusConflict,
+			"post is archived",
+		)
 	}
 
 	if status == model.PostStatusPublished {
-		return nil, errors.New("文章已经发布")
+		return nil, appErrors.New(
+			appErrors.ErrPostAlreadyPublished,
+			http.StatusConflict,
+			"post is already published",
+		)
 	}
 
 	// -------------------------------------------------------

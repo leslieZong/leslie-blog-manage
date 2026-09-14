@@ -173,25 +173,6 @@ func (h *PostHandler) List(c *gin.Context) {
 	response.Success(c, res)
 }
 
-// ListPublished 获取已发布文章列表。
-func (h *PostHandler) ListPublished(c *gin.Context) {
-
-	ctx := c.Request.Context()
-
-	posts, err := h.service.ListPublished(ctx)
-
-	if err != nil {
-
-		response.AppError(c, err)
-
-		return
-	}
-
-	res := dto.FromModelList(posts)
-
-	response.Success(c, res)
-}
-
 // Update 更新文章。
 func (h *PostHandler) Update(c *gin.Context) {
 

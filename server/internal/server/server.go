@@ -118,6 +118,10 @@ func New(cfg *config.Config) (*Server, error) {
 	roleH := roleHandler.NewRoleHandler(roleSvc)
 	postH := postHandler.NewPostHandler(postSvc)
 
+	publicPostHandler := postHandler.NewPublicPostHandler(
+		postSvc,
+	)
+
 	// ==================================================
 	// 9. 创建 JWT Middleware
 	// ==================================================
@@ -149,6 +153,7 @@ func New(cfg *config.Config) (*Server, error) {
 		authH,
 		roleH,
 		postH,
+		publicPostHandler,
 		jwtMiddleware,
 		enforcer,
 	)
