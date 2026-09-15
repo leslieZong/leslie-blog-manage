@@ -6,7 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"leslie-blog-server/internal/modules/post/dto"
+	"leslie-blog-server/internal/modules/post/repository"
 	"leslie-blog-server/internal/modules/post/service"
+	"leslie-blog-server/internal/pkg/pagination"
 	"leslie-blog-server/internal/response"
 )
 
@@ -52,8 +54,13 @@ func NewPublicPostHandler(
 func (h *PublicPostHandler) ListPublished(c *gin.Context) {
 
 	ctx := c.Request.Context()
+	query := repository.PostListQuery{
+		Params:     pagination.Parse(c),
+		CategoryID: c.Query("categoryId"),
+		Status:     c.Query("status"),
+	}
 
-	posts, err := h.service.ListPublished(ctx)
+	posts, total, err := h.service.ListPublished(ctx, query)
 
 	if err != nil {
 
@@ -63,8 +70,15 @@ func (h *PublicPostHandler) ListPublished(c *gin.Context) {
 	}
 
 	res := dto.FromPublicModelList(posts)
+	// 第四步：
+	// 构造统一分页结果。
+	result := pagination.NewResult(
+		res,
+		query.Params,
+		total,
+	)
 
-	response.Success(c, res)
+	response.Success(c, result)
 }
 
 // GetByID

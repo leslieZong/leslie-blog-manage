@@ -59,6 +59,18 @@ type PostRepository interface {
 		ctx context.Context,
 	) ([]*model.Post, error)
 
+	// 分页查询文章。
+	FindPage(
+		ctx context.Context,
+		params PostListQuery,
+	) ([]*model.Post, int64, error)
+
+	// 分页查询已发布文章。
+	FindPublishedPage(
+		ctx context.Context,
+		params PostListQuery,
+	) ([]*model.Post, int64, error)
+
 	// Delete 删除文章。
 	//
 	// 注意：

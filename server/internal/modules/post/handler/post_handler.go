@@ -3,8 +3,10 @@ package handler
 import (
 	"leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/post/dto"
+	"leslie-blog-server/internal/modules/post/repository"
 	"leslie-blog-server/internal/modules/post/service"
 	"leslie-blog-server/internal/pkg/auth"
+	"leslie-blog-server/internal/pkg/pagination"
 	"leslie-blog-server/internal/response"
 	"net/http"
 
@@ -158,9 +160,17 @@ func (h *PostHandler) GetByID(c *gin.Context) {
 // List 获取文章列表。
 func (h *PostHandler) List(c *gin.Context) {
 
+	// 第一步：
+	// 获取请求 Context。
 	ctx := c.Request.Context()
-
-	posts, err := h.service.List(ctx)
+	query := repository.PostListQuery{
+		Params:     pagination.Parse(c),
+		CategoryID: c.Query("categoryId"),
+		Status:     c.Query("status"),
+	}
+	// 第二步：
+	// 调用 Service
+	posts, total, err := h.service.List(ctx, query)
 
 	if err != nil {
 
@@ -168,10 +178,18 @@ func (h *PostHandler) List(c *gin.Context) {
 
 		return
 	}
-
+	// 第三步：
+	// 转换为 API 列表 DTO。
 	res := dto.FromModelList(posts)
+	// 第四步：
+	// 构造统一分页结果。
+	result := pagination.NewResult(
+		res,
+		query.Params,
+		total,
+	)
 
-	response.Success(c, res)
+	response.Success(c, result)
 }
 
 // Update 更新文章。

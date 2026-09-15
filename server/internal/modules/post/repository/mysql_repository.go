@@ -129,6 +129,7 @@ func (r *gormPostRepository) FindAll(
 	err := r.db.
 		WithContext(ctx).
 		Preload("Category").
+		Where("deleted_at IS NULL").
 		Order("created_at DESC").
 		Find(&posts).
 		Error
@@ -218,4 +219,114 @@ func (r *gormPostRepository) IncrementViewCount(
 			gorm.Expr("view_count + ?", 1),
 		).
 		Error
+}
+
+func (r *gormPostRepository) FindPage(
+	ctx context.Context,
+	params PostListQuery,
+) ([]*model.Post, int64, error) {
+
+	var (
+		posts []*model.Post
+		total int64
+	)
+
+	// 第一步：
+	// 查询符合条件的文章总数。
+	//
+	// 这里必须和下面真正查询数据的条件保持一致。
+	query := r.db.
+		WithContext(ctx).
+		Model(&model.Post{}).Where("deleted_at IS NULL")
+	if params.Status != "" {
+		query = query.Where("status = ?", params.Status)
+	}
+	if params.CategoryID != "" {
+		query = query.Where("category_id = ?", params.CategoryID)
+	}
+
+	err := query.
+		Count(&total).
+		Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 第二步：
+	// 查询当前页面的数据。
+	query = r.db.
+		WithContext(ctx).
+		Preload("Category").
+		Where("deleted_at IS NULL")
+	if params.Status != "" {
+		query = query.Where("status = ?", params.Status)
+	}
+	if params.CategoryID != "" {
+		query = query.Where("category_id = ?", params.CategoryID)
+	}
+
+	// 最新文章优先。
+	err = query.Order("created_at DESC").
+		Limit(params.PageSize).
+		Offset(params.Offset()).
+		Find(&posts).
+		Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return posts, total, nil
+}
+
+func (r *gormPostRepository) FindPublishedPage(
+	ctx context.Context,
+	params PostListQuery,
+) ([]*model.Post, int64, error) {
+
+	var (
+		posts []*model.Post
+		total int64
+	)
+
+	query := r.db.
+		WithContext(ctx).
+		Model(&model.Post{}).
+		Where("deleted_at IS NULL").
+		Where(
+			"status = ?",
+			model.PostStatusPublished,
+		)
+	if params.CategoryID != "" {
+		query = query.Where("category_id = ?", params.CategoryID)
+	}
+	// Count
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 查询当前页
+	query = r.db.
+		WithContext(ctx).
+		Preload("Category").
+		Where(
+			"status = ?",
+			model.PostStatusPublished,
+		).
+		Where("deleted_at IS NULL")
+	if params.CategoryID != "" {
+		query = query.Where("category_id = ?", params.CategoryID)
+	}
+	if err := query.
+		Order("published_at DESC").
+		Limit(params.PageSize).
+		Offset(params.Offset()).
+		Find(&posts).
+		Error; err != nil {
+
+		return nil, 0, err
+	}
+
+	return posts, total, nil
 }

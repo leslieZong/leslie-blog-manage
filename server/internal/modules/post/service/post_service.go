@@ -45,15 +45,17 @@ type PostService interface {
 		slug string,
 	) (*model.Post, error)
 
-	// List 获取文章列表。
+	// 管理端分页查询文章
 	List(
 		ctx context.Context,
-	) ([]*model.Post, error)
+		query repository.PostListQuery,
+	) ([]*model.Post, int64, error)
 
-	// Public
+	// 公共页面分页查询文章
 	ListPublished(
 		ctx context.Context,
-	) ([]*model.Post, error)
+		query repository.PostListQuery,
+	) ([]*model.Post, int64, error)
 
 	// Public API 专用
 	GetPublicByID(
@@ -336,25 +338,33 @@ func (s *postService) GetBySlug(
 // List 获取文章列表。
 func (s *postService) List(
 	ctx context.Context,
-) ([]*model.Post, error) {
+	query repository.PostListQuery,
+) ([]*model.Post, int64, error) {
 
-	posts, err := s.repo.FindAll(ctx)
-
+	// Service 层不负责直接操作数据库。
+	//
+	// 它只负责：
+	// 1. 接收业务查询条件
+	// 2. 调用 Repository
+	// 3. 返回查询结果
+	//
+	// 真正的 SQL 查询由 Repository 完成。
+	posts, total, err := s.repo.FindPage(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return posts, nil
+	return posts, total, nil
 }
 
 func (s *postService) ListPublished(
 	ctx context.Context,
-) ([]*model.Post, error) {
-
-	posts, err := s.repo.FindPublished(ctx)
+	query repository.PostListQuery,
+) ([]*model.Post, int64, error) {
+	posts, total, err := s.repo.FindPublishedPage(ctx, query)
 
 	if err != nil {
-		return nil, appErrors.Wrap(
+		return nil, 0, appErrors.Wrap(
 			appErrors.ErrInternalServer,
 			http.StatusInternalServerError,
 			"failed to query published posts",
@@ -362,7 +372,7 @@ func (s *postService) ListPublished(
 		)
 	}
 
-	return posts, nil
+	return posts, total, nil
 }
 
 // GetPublicByID

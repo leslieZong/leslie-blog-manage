@@ -1,6 +1,7 @@
 package pagination
 
 import (
+	"math"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -103,19 +104,48 @@ func (p Params) Offset() int {
 	return (p.Page - 1) * p.PageSize
 }
 
+// TotalPages 根据总数据量计算总页数。
+func (p Params) TotalPages(total int64) int {
+
+	if total <= 0 {
+		return 0
+	}
+
+	return int(math.Ceil(
+		float64(total) / float64(p.PageSize),
+	))
+}
+
 // Result 是统一的分页返回结构。
 //
 // 例如：
 //
 //	{
-//	    "items": [...],
+//	    "list": [...],
 //	    "total": 100,
 //	    "page": 1,
 //	    "pageSize": 20
 //	}
 type Result[T any] struct {
-	Items    []T   `json:"items"`
-	Total    int64 `json:"total"`
-	Page     int   `json:"page"`
-	PageSize int   `json:"pageSize"`
+	List       []T   `json:"list"`
+	Total      int64 `json:"total"`
+	TotalPages int   `json:"totalPages"`
+	Page       int   `json:"page"`
+	PageSize   int   `json:"pageSize"`
+}
+
+// NewResult 创建分页结果。
+func NewResult[T any](
+	list []T,
+	params Params,
+	total int64,
+) Result[T] {
+
+	return Result[T]{
+		List:       list,
+		Page:       params.Page,
+		PageSize:   params.PageSize,
+		Total:      total,
+		TotalPages: params.TotalPages(total),
+	}
 }

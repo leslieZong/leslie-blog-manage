@@ -107,10 +107,11 @@ func (h *RoleHandler) List(
 	response.Success(
 		c,
 		pagination.Result[*dto.RoleResponse]{
-			Items:    items,
-			Total:    total,
-			Page:     page.Page,
-			PageSize: page.PageSize,
+			List:       items,
+			TotalPages: page.TotalPages(total),
+			Total:      total,
+			Page:       page.Page,
+			PageSize:   page.PageSize,
 		},
 	)
 }

@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 
 	"leslie-blog-server/internal/modules/category/model"
+	postModel "leslie-blog-server/internal/modules/post/model"
 )
 
 // gormCategoryRepository
@@ -185,7 +186,7 @@ func (r *gormCategoryRepository) CountPosts(
 
 	err := r.db.
 		WithContext(ctx).
-		Table("posts").
+		Model(&postModel.Post{}).
 		Where("category_id = ?", categoryID).
 		Where("deleted_at IS NULL").
 		Count(&count).

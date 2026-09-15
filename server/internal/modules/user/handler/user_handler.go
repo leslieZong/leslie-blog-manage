@@ -173,10 +173,11 @@ func (h *UserHandler) List(c *gin.Context) {
 	// =========================================================
 
 	result := pagination.Result[*dto.UserResponse]{
-		Items:    items,
-		Total:    total,
-		Page:     pageParams.Page,
-		PageSize: pageParams.PageSize,
+		List:       items,
+		TotalPages: pageParams.TotalPages(total),
+		Total:      total,
+		Page:       pageParams.Page,
+		PageSize:   pageParams.PageSize,
 	}
 
 	response.Success(c, result)
