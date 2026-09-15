@@ -149,7 +149,7 @@ func (r *gormPostRepository) FindPublished(
 	err := r.db.
 		WithContext(ctx).
 		Preload("Category").
-		Where("status = ?", "published").
+		Where("status = ?", model.PostStatusPublished).
 		Where("deleted_at IS NULL").
 		Order("published_at DESC").
 		Find(&posts).
