@@ -1,6 +1,7 @@
 package model
 
 import (
+	category "leslie-blog-server/internal/modules/category/model"
 	"time"
 
 	"gorm.io/gorm"
@@ -60,6 +61,26 @@ type Post struct {
 	//
 	// 对应 users.id。
 	AuthorID string `gorm:"column:author_id;size:26;not null"`
+
+	// CategoryID 是文章所属分类 ID。
+	//
+	// 它对应 categories.id。
+	CategoryID string `gorm:"column:category_id;size:26;not null"`
+
+	// Category 是文章对应的分类对象。
+	//
+	// 注意：
+	//
+	// CategoryID 是真正存储在 posts 表中的字段。
+	//
+	// Category 则是 GORM 根据外键关系查询出来的对象。
+	//
+	// 这里暂时使用指针：
+	//
+	// *Category
+	//
+	// 表示这个关联对象可以不存在。
+	Category *category.Category `gorm:"foreignKey:CategoryID;references:ID"`
 
 	// PublishedAt 表示文章第一次发布的时间。
 	//

@@ -10,6 +10,9 @@ import (
 	"leslie-blog-server/internal/middleware"
 	"leslie-blog-server/internal/modules/auth/handler"
 	authService "leslie-blog-server/internal/modules/auth/service"
+	categoryHandler "leslie-blog-server/internal/modules/category/handler"
+	categoryRepository "leslie-blog-server/internal/modules/category/repository"
+	categoryService "leslie-blog-server/internal/modules/category/service"
 	permissionRepository "leslie-blog-server/internal/modules/permission/repository"
 	postHandler "leslie-blog-server/internal/modules/post/handler"
 	postRepository "leslie-blog-server/internal/modules/post/repository"
@@ -84,6 +87,7 @@ func New(cfg *config.Config) (*Server, error) {
 	roleRepo := roleRepository.NewRoleRepository(db)
 	permissionRepo := permissionRepository.NewPermissionRepository(db)
 	postRepo := postRepository.NewPostRepository(db)
+	categoryRepo := categoryRepository.NewCategoryRepository(db)
 
 	// ==================================================
 	// 5. 创建模块 Service
@@ -101,12 +105,16 @@ func New(cfg *config.Config) (*Server, error) {
 	)
 	postSvc := postService.NewPostService(
 		postRepo,
+		categoryRepo,
 	)
 	authSvc := authService.NewAuthService(
 		userRepo,
 		cfg.JWT.Secret,
 		cfg.JWT.Issuer,
 		cfg.JWT.ExpireHours,
+	)
+	categorySvc := categoryService.NewCategoryService(
+		categoryRepo,
 	)
 
 	// ==================================================
@@ -117,9 +125,16 @@ func New(cfg *config.Config) (*Server, error) {
 	authH := handler.NewAuthHandler(authSvc, userSvc)
 	roleH := roleHandler.NewRoleHandler(roleSvc)
 	postH := postHandler.NewPostHandler(postSvc)
+	categoryH := categoryHandler.NewCategoryHandler(
+		categorySvc,
+	)
 
 	publicPostHandler := postHandler.NewPublicPostHandler(
 		postSvc,
+	)
+
+	publicCategoryHandler := categoryHandler.NewPublicCategoryHandler(
+		categorySvc,
 	)
 
 	// ==================================================
@@ -154,6 +169,8 @@ func New(cfg *config.Config) (*Server, error) {
 		roleH,
 		postH,
 		publicPostHandler,
+		categoryH,
+		publicCategoryHandler,
 		jwtMiddleware,
 		enforcer,
 	)

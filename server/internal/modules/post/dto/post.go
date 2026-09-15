@@ -1,6 +1,7 @@
 package dto
 
 import (
+	categoryDto "leslie-blog-server/internal/modules/category/dto"
 	"leslie-blog-server/internal/modules/post/model"
 	"time"
 )
@@ -39,6 +40,9 @@ type CreatePostRequest struct {
 
 	// Cover 文章封面地址。
 	Cover *string `json:"cover"`
+
+	// 分类 ID
+	CategoryID string `json:"categoryId"`
 }
 
 // UpdatePostRequest 更新文章请求。
@@ -67,6 +71,9 @@ type UpdatePostRequest struct {
 
 	// Cover 文章封面。
 	Cover *string `json:"cover"`
+
+	// 分类 ID
+	CategoryID string `json:"categoryId"`
 }
 
 // PostResponse 文章详情响应。
@@ -84,6 +91,10 @@ type PostResponse struct {
 
 	// Slug 文章 slug。
 	Slug string `json:"slug"`
+
+	CategoryID string `json:"categoryId"`
+	// Category 是给前端展示用的分类信息。
+	Category *categoryDto.SimpleCategoryResponse `json:"category"`
 
 	// Summary 文章摘要。
 	Summary *string `json:"summary"`
@@ -125,9 +136,12 @@ func FromModel(post *model.Post) *PostResponse {
 	}
 
 	return &PostResponse{
-		ID:          post.ID,
-		Title:       post.Title,
-		Slug:        post.Slug,
+		ID:         post.ID,
+		Title:      post.Title,
+		Slug:       post.Slug,
+		CategoryID: post.CategoryID,
+		// 不把整个 GORM Category Model 直接返回给前端。
+		Category:    categoryDto.FromSimpleModel(post.Category),
 		Summary:     post.Summary,
 		Content:     post.Content,
 		Cover:       post.Cover,
@@ -145,17 +159,20 @@ func FromModel(post *model.Post) *PostResponse {
 // 列表通常不需要返回完整 Content，
 // 避免一次查询大量正文。
 type PostListItem struct {
-	ID          string     `json:"id"`
-	Title       string     `json:"title"`
-	Slug        string     `json:"slug"`
-	Summary     *string    `json:"summary"`
-	Cover       *string    `json:"cover"`
-	Status      string     `json:"status"`
-	AuthorID    string     `json:"author_id"`
-	PublishedAt *time.Time `json:"published_at"`
-	ViewCount   uint64     `json:"view_count"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID         string  `json:"id"`
+	Title      string  `json:"title"`
+	Slug       string  `json:"slug"`
+	Summary    *string `json:"summary"`
+	CategoryID string  `json:"categoryId"`
+	// Category 是给前端展示用的分类信息。
+	Category    *categoryDto.SimpleCategoryResponse `json:"category"`
+	Cover       *string                             `json:"cover"`
+	Status      string                              `json:"status"`
+	AuthorID    string                              `json:"author_id"`
+	PublishedAt *time.Time                          `json:"published_at"`
+	ViewCount   uint64                              `json:"view_count"`
+	CreatedAt   time.Time                           `json:"created_at"`
+	UpdatedAt   time.Time                           `json:"updated_at"`
 }
 
 // FromModelList 将文章 Model 列表转换成 API 列表 DTO。
@@ -170,9 +187,12 @@ func FromModelList(posts []*model.Post) []*PostListItem {
 		}
 
 		result = append(result, &PostListItem{
-			ID:          post.ID,
-			Title:       post.Title,
-			Slug:        post.Slug,
+			ID:         post.ID,
+			Title:      post.Title,
+			Slug:       post.Slug,
+			CategoryID: post.CategoryID,
+			// 不把整个 GORM Category Model 直接返回给前端。
+			Category:    categoryDto.FromSimpleModel(post.Category),
 			Summary:     post.Summary,
 			Cover:       post.Cover,
 			Status:      post.Status,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	appErrors "leslie-blog-server/internal/errors"
+	categoryRepository "leslie-blog-server/internal/modules/category/repository"
 	"leslie-blog-server/internal/modules/post/model"
 	"leslie-blog-server/internal/modules/post/repository"
 	"leslie-blog-server/internal/pkg/ulid"
@@ -26,6 +27,7 @@ type PostService interface {
 		authorID string,
 		title string,
 		slug string,
+		categoryID string,
 		summary *string,
 		content string,
 		cover *string,
@@ -70,6 +72,7 @@ type PostService interface {
 		id string,
 		title string,
 		slug string,
+		categoryID string,
 		summary *string,
 		content string,
 		cover *string,
@@ -103,15 +106,18 @@ type PostService interface {
 // 外部只需要通过 PostService 接口使用它。
 type postService struct {
 	// repository 负责数据库操作。
-	repo repository.PostRepository
+	repo         repository.PostRepository
+	categoryRepo categoryRepository.CategoryRepository
 }
 
 func NewPostService(
 	repo repository.PostRepository,
+	categoryRepo categoryRepository.CategoryRepository,
 ) PostService {
 
 	return &postService{
-		repo: repo,
+		repo:         repo,
+		categoryRepo: categoryRepo,
 	}
 }
 
@@ -121,6 +127,7 @@ func (s *postService) Create(
 	authorID string,
 	title string,
 	slug string,
+	categoryID string,
 	summary *string,
 	content string,
 	cover *string,
@@ -129,6 +136,51 @@ func (s *postService) Create(
 	// -------------------------------------------------------
 	// 1. 基础参数校验
 	// -------------------------------------------------------
+
+	// --------------------------------------------------------
+	// 检查 Category
+	// --------------------------------------------------------
+
+	categoryID = strings.TrimSpace(categoryID)
+
+	if categoryID == "" {
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"category id cannot be empty",
+		)
+	}
+
+	category, err := s.categoryRepo.FindByID(
+		ctx,
+		categoryID,
+	)
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"category not found",
+		)
+	}
+
+	if err != nil {
+		return nil, appErrors.Wrap(
+			appErrors.ErrInternalServer,
+			http.StatusInternalServerError,
+			"failed to query category",
+			err,
+		)
+	}
+
+	// 分类被禁用时，不允许新文章使用。
+	if category.Status != 1 {
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"category is disabled",
+		)
+	}
 
 	title = strings.TrimSpace(title)
 	slug = strings.TrimSpace(slug)
@@ -196,12 +248,13 @@ func (s *postService) Create(
 	// -------------------------------------------------------
 
 	post := &model.Post{
-		ID:      ulid.New(),
-		Title:   title,
-		Slug:    slug,
-		Summary: summary,
-		Content: content,
-		Cover:   cover,
+		ID:         ulid.New(),
+		Title:      title,
+		Slug:       slug,
+		Summary:    summary,
+		CategoryID: categoryID,
+		Content:    content,
+		Cover:      cover,
 
 		// 创建文章默认是草稿。
 		Status: string(model.PostStatusDraft),
@@ -482,6 +535,7 @@ func (s *postService) Update(
 	id string,
 	title string,
 	slug string,
+	categoryID string,
 	summary *string,
 	content string,
 	cover *string,
@@ -490,6 +544,45 @@ func (s *postService) Update(
 	// -------------------------------------------------------
 	// 1. 参数校验
 	// -------------------------------------------------------
+	categoryID = strings.TrimSpace(categoryID)
+
+	if categoryID == "" {
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"category id cannot be empty",
+		)
+	}
+
+	category, err := s.categoryRepo.FindByID(
+		ctx,
+		categoryID,
+	)
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"category not found",
+		)
+	}
+
+	if err != nil {
+		return nil, appErrors.Wrap(
+			appErrors.ErrInternalServer,
+			http.StatusInternalServerError,
+			"failed to query category",
+			err,
+		)
+	}
+
+	if category.Status != 1 {
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"category is disabled",
+		)
+	}
 
 	id = strings.TrimSpace(id)
 	title = strings.TrimSpace(title)
@@ -550,6 +643,7 @@ func (s *postService) Update(
 	post.Summary = summary
 	post.Content = content
 	post.Cover = cover
+	post.CategoryID = categoryID
 
 	// 注意：
 	//

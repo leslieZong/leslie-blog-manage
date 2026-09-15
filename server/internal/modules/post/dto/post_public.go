@@ -3,6 +3,7 @@ package dto
 import (
 	"time"
 
+	categoryDto "leslie-blog-server/internal/modules/category/dto"
 	"leslie-blog-server/internal/modules/post/model"
 )
 
@@ -24,6 +25,10 @@ type PublicPostResponse struct {
 
 	// URL 中使用的文章标识
 	Slug string `json:"slug"`
+
+	CategoryID string `json:"categoryId"`
+	// Category 是给前端展示用的分类信息。
+	Category *categoryDto.SimpleCategoryResponse `json:"category"`
 
 	// 文章摘要
 	Summary *string `json:"summary"`
@@ -51,7 +56,13 @@ type PublicPostListItem struct {
 
 	Title string `json:"title"`
 
+	// URL 中使用的文章标识
 	Slug string `json:"slug"`
+
+	// 文章所属分类 ID
+	CategoryID string `json:"categoryId"`
+	// Category 是给前端展示用的分类信息。
+	Category *categoryDto.SimpleCategoryResponse `json:"category"`
 
 	Summary *string `json:"summary"`
 
@@ -71,9 +82,12 @@ func FromPublicModel(post *model.Post) *PublicPostResponse {
 	}
 
 	return &PublicPostResponse{
-		ID:          post.ID,
-		Title:       post.Title,
-		Slug:        post.Slug,
+		ID:         post.ID,
+		Title:      post.Title,
+		Slug:       post.Slug,
+		CategoryID: post.CategoryID,
+		// 不把整个 GORM Category Model 直接返回给前端。
+		Category:    categoryDto.FromSimpleModel(post.Category),
 		Summary:     post.Summary,
 		Content:     post.Content,
 		Cover:       post.Cover,
@@ -97,6 +111,8 @@ func FromPublicModelList(posts []*model.Post) []*PublicPostListItem {
 			ID:          post.ID,
 			Title:       post.Title,
 			Slug:        post.Slug,
+			CategoryID:  post.CategoryID,
+			Category:    categoryDto.FromSimpleModel(post.Category),
 			Summary:     post.Summary,
 			Cover:       post.Cover,
 			PublishedAt: post.PublishedAt,

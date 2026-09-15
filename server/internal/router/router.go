@@ -3,6 +3,8 @@ package router
 import (
 	"leslie-blog-server/internal/modules/auth"
 	authHandler "leslie-blog-server/internal/modules/auth/handler"
+	"leslie-blog-server/internal/modules/category"
+	categoryHandler "leslie-blog-server/internal/modules/category/handler"
 	"leslie-blog-server/internal/modules/post"
 	postHandler "leslie-blog-server/internal/modules/post/handler"
 	"leslie-blog-server/internal/modules/role"
@@ -20,10 +22,12 @@ type Router struct {
 
 	userHandler *userHandler.UserHandler
 
-	authHandler       *authHandler.AuthHandler
-	roleHandler       *roleHandler.RoleHandler
-	postHandler       *postHandler.PostHandler
-	publicPostHandler *postHandler.PublicPostHandler
+	authHandler           *authHandler.AuthHandler
+	roleHandler           *roleHandler.RoleHandler
+	postHandler           *postHandler.PostHandler
+	publicPostHandler     *postHandler.PublicPostHandler
+	categoryHandler       *categoryHandler.CategoryHandler
+	publicCategoryHandler *categoryHandler.PublicCategoryHandler
 
 	// jwtMiddleware 是 JWT 认证中间件。
 	//
@@ -41,19 +45,23 @@ func New(
 	roleHandler *roleHandler.RoleHandler,
 	postHandler *postHandler.PostHandler,
 	publicPostHandler *postHandler.PublicPostHandler,
+	categoryHandler *categoryHandler.CategoryHandler,
+	publicCategoryHandler *categoryHandler.PublicCategoryHandler,
 	jwtMiddleware gin.HandlerFunc,
 	enforcer *casbin.Enforcer,
 ) *Router {
 
 	return &Router{
-		engine:            engine,
-		userHandler:       userHandler,
-		authHandler:       authHandler,
-		roleHandler:       roleHandler,
-		postHandler:       postHandler,
-		publicPostHandler: publicPostHandler,
-		jwtMiddleware:     jwtMiddleware,
-		enforcer:          enforcer,
+		engine:                engine,
+		userHandler:           userHandler,
+		authHandler:           authHandler,
+		roleHandler:           roleHandler,
+		postHandler:           postHandler,
+		publicPostHandler:     publicPostHandler,
+		categoryHandler:       categoryHandler,
+		publicCategoryHandler: publicCategoryHandler,
+		jwtMiddleware:         jwtMiddleware,
+		enforcer:              enforcer,
 	}
 }
 
@@ -74,6 +82,10 @@ func (r *Router) Register() {
 	post.RegisterPublicRoutes(
 		v1,
 		r.publicPostHandler,
+	)
+	category.RegisterPublicRoutes(
+		v1,
+		r.publicCategoryHandler,
 	)
 
 	// 当前还没有公共 API。
@@ -128,6 +140,13 @@ func (r *Router) Register() {
 		r.postHandler,
 		r.enforcer,
 	)
+
+	category.RegisterRoutes(
+		protected,
+		r.categoryHandler,
+		r.enforcer,
+	)
+
 }
 
 // health 是健康检查接口。

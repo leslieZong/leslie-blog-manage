@@ -62,6 +62,21 @@ const (
 
 	// ErrPostArchived 归档文章不能执行当前操作
 	ErrPostArchived = 40004
+
+	// Category 专属错误码
+	// =============================
+
+	// ErrCategoryNotFound 分类不存在
+	ErrCategoryNotFound = 40421
+
+	// ErrCategoryNameExists 分类名称已存在
+	ErrCategoryNameExists = 40021
+
+	// ErrCategorySlugExists 分类 slug 已存在
+	ErrCategorySlugExists = 40022
+
+	// ErrCategoryHasPosts 分类下有文章，不能删除
+	ErrCategoryHasPosts = 40023
 )
 
 const (

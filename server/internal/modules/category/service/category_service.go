@@ -122,7 +122,7 @@ func (s *categoryService) Create(
 
 	if err == nil && existing != nil {
 		return nil, appErrors.New(
-			appErrors.ErrInvalidParams,
+			appErrors.ErrCategoryNameExists,
 			http.StatusBadRequest,
 			"category name already exists",
 		)
@@ -147,7 +147,7 @@ func (s *categoryService) Create(
 
 	if err == nil && existing != nil {
 		return nil, appErrors.New(
-			appErrors.ErrInvalidParams,
+			appErrors.ErrCategorySlugExists,
 			http.StatusBadRequest,
 			"category slug already exists",
 		)
@@ -339,7 +339,7 @@ func (s *categoryService) Update(
 		existing.ID != id {
 
 		return nil, appErrors.New(
-			appErrors.ErrInvalidParams,
+			appErrors.ErrCategoryNameExists,
 			http.StatusBadRequest,
 			"category name already exists",
 		)
@@ -367,7 +367,7 @@ func (s *categoryService) Update(
 		existing.ID != id {
 
 		return nil, appErrors.New(
-			appErrors.ErrInvalidParams,
+			appErrors.ErrCategorySlugExists,
 			http.StatusBadRequest,
 			"category slug already exists",
 		)
@@ -478,7 +478,7 @@ func (s *categoryService) Delete(
 
 	if count > 0 {
 		return appErrors.New(
-			appErrors.ErrConflict,
+			appErrors.ErrCategoryHasPosts,
 			http.StatusBadRequest,
 			"category contains posts and cannot be deleted",
 		)

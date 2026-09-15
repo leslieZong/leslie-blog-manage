@@ -73,6 +73,7 @@ func (r *gormPostRepository) FindByID(
 
 	err := r.db.
 		WithContext(ctx).
+		Preload("Category").
 		Where("id = ?", id).
 		First(&post).
 		Error
@@ -94,6 +95,7 @@ func (r *gormPostRepository) FindBySlug(
 
 	err := r.db.
 		WithContext(ctx).
+		Preload("Category").
 		Where("slug = ?", slug).
 		First(&post).
 		Error
@@ -126,6 +128,7 @@ func (r *gormPostRepository) FindAll(
 
 	err := r.db.
 		WithContext(ctx).
+		Preload("Category").
 		Order("created_at DESC").
 		Find(&posts).
 		Error
@@ -145,6 +148,7 @@ func (r *gormPostRepository) FindPublished(
 
 	err := r.db.
 		WithContext(ctx).
+		Preload("Category").
 		Where("status = ?", "published").
 		Where("deleted_at IS NULL").
 		Order("published_at DESC").
