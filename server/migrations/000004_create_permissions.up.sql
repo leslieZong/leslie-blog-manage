@@ -1,4 +1,4 @@
-CREATE TABLE permissions (
+CREATE TABLE IF NOT EXISTS permissions (
     id CHAR(26) NOT NULL,
     name VARCHAR(100) NOT NULL,
     display_name VARCHAR(100) NOT NULL,

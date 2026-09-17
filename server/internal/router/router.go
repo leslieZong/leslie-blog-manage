@@ -9,6 +9,8 @@ import (
 	postHandler "leslie-blog-server/internal/modules/post/handler"
 	"leslie-blog-server/internal/modules/role"
 	roleHandler "leslie-blog-server/internal/modules/role/handler"
+	"leslie-blog-server/internal/modules/tag"
+	tagHandler "leslie-blog-server/internal/modules/tag/handler"
 	"leslie-blog-server/internal/modules/user"
 	userHandler "leslie-blog-server/internal/modules/user/handler"
 	"leslie-blog-server/internal/pkg/casbin"
@@ -28,6 +30,7 @@ type Router struct {
 	publicPostHandler     *postHandler.PublicPostHandler
 	categoryHandler       *categoryHandler.CategoryHandler
 	publicCategoryHandler *categoryHandler.PublicCategoryHandler
+	tagHandler            *tagHandler.TagHandler
 
 	// jwtMiddleware 是 JWT 认证中间件。
 	//
@@ -47,6 +50,7 @@ func New(
 	publicPostHandler *postHandler.PublicPostHandler,
 	categoryHandler *categoryHandler.CategoryHandler,
 	publicCategoryHandler *categoryHandler.PublicCategoryHandler,
+	tagHandler *tagHandler.TagHandler,
 	jwtMiddleware gin.HandlerFunc,
 	enforcer *casbin.Enforcer,
 ) *Router {
@@ -60,6 +64,7 @@ func New(
 		publicPostHandler:     publicPostHandler,
 		categoryHandler:       categoryHandler,
 		publicCategoryHandler: publicCategoryHandler,
+		tagHandler:            tagHandler,
 		jwtMiddleware:         jwtMiddleware,
 		enforcer:              enforcer,
 	}
@@ -144,6 +149,11 @@ func (r *Router) Register() {
 	category.RegisterRoutes(
 		protected,
 		r.categoryHandler,
+		r.enforcer,
+	)
+	tag.RegisterRoutes(
+		protected,
+		r.tagHandler,
 		r.enforcer,
 	)
 

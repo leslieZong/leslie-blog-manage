@@ -1,4 +1,4 @@
-CREATE TABLE categories (
+CREATE TABLE IF NOT EXISTS categories (
     id CHAR(26) NOT NULL,
     name VARCHAR(100) NOT NULL,
     slug VARCHAR(100) NOT NULL,

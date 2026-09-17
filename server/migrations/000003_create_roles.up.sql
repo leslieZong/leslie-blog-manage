@@ -1,4 +1,4 @@
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
     id CHAR(26) NOT NULL,
     name VARCHAR(50) NOT NULL,
     display_name VARCHAR(100) NOT NULL,

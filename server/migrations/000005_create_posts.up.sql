@@ -1,4 +1,4 @@
-CREATE TABLE posts (
+CREATE TABLE IF NOT EXISTS posts (
     id CHAR(26) NOT NULL,
     title VARCHAR(200) NOT NULL,
     slug VARCHAR(200) NOT NULL,
