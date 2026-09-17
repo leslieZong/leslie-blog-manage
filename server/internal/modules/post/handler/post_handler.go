@@ -6,6 +6,7 @@ import (
 	"leslie-blog-server/internal/modules/post/repository"
 	"leslie-blog-server/internal/modules/post/service"
 	"leslie-blog-server/internal/pkg/auth"
+	"leslie-blog-server/internal/pkg/casbin"
 	"leslie-blog-server/internal/pkg/pagination"
 	"leslie-blog-server/internal/response"
 	"net/http"
@@ -26,7 +27,8 @@ import (
 // 它不直接操作数据库。
 type PostHandler struct {
 	// service 是文章业务层。
-	service service.PostService
+	service  service.PostService
+	enforcer *casbin.Enforcer
 }
 
 // NewPostHandler 创建 PostHandler。
@@ -34,10 +36,12 @@ type PostHandler struct {
 // 依赖通过参数传入，而不是在 Handler 内部自己创建。
 func NewPostHandler(
 	postService service.PostService,
+	enforcer *casbin.Enforcer,
 ) *PostHandler {
 
 	return &PostHandler{
-		service: postService,
+		service:  postService,
+		enforcer: enforcer,
 	}
 }
 
@@ -219,9 +223,20 @@ func (h *PostHandler) Update(c *gin.Context) {
 	// -------------------------------------------------------
 
 	ctx := c.Request.Context()
+	userID := auth.GetUserID(c)
+	roles, err := h.enforcer.GetRolesForUser(userID)
+	if err != nil {
+		response.AppError(c, err)
+		return
+	}
+	actor := auth.Actor{
+		UserID:  userID,
+		IsAdmin: auth.IsAdminRole(roles),
+	}
 
 	post, err := h.service.Update(
 		ctx,
+		actor,
 		id,
 		req.Title,
 		req.Slug,
@@ -259,10 +274,20 @@ func (h *PostHandler) Update(c *gin.Context) {
 func (h *PostHandler) Delete(c *gin.Context) {
 
 	id := c.Param("id")
+	userID := auth.GetUserID(c)
+	roles, err := h.enforcer.GetRolesForUser(userID)
+	if err != nil {
+		response.AppError(c, err)
+		return
+	}
+	actor := auth.Actor{
+		UserID:  userID,
+		IsAdmin: auth.IsAdminRole(roles),
+	}
 
 	ctx := c.Request.Context()
 
-	if err := h.service.Delete(ctx, id); err != nil {
+	if err := h.service.Delete(ctx, actor, id); err != nil {
 
 		c.JSON(400, gin.H{
 			"message": err.Error(),
@@ -278,10 +303,21 @@ func (h *PostHandler) Delete(c *gin.Context) {
 func (h *PostHandler) Publish(c *gin.Context) {
 
 	id := c.Param("id")
+	userID := auth.GetUserID(c)
+	roles, err := h.enforcer.GetRolesForUser(userID)
+	if err != nil {
+		response.AppError(c, err)
+		return
+	}
+
+	actor := auth.Actor{
+		UserID:  userID,
+		IsAdmin: auth.IsAdminRole(roles),
+	}
 
 	ctx := c.Request.Context()
 
-	post, err := h.service.Publish(ctx, id)
+	post, err := h.service.Publish(ctx, actor, id)
 
 	if err != nil {
 
@@ -318,4 +354,30 @@ func (h *PostHandler) GetBySlug(c *gin.Context) {
 	res := dto.FromModel(post)
 
 	response.Success(c, res)
+}
+
+// Archive 归档文章。
+func (h *PostHandler) Archive(c *gin.Context) {
+	id := c.Param("id")
+	userID := auth.GetUserID(c)
+	roles, err := h.enforcer.GetRolesForUser(userID)
+	if err != nil {
+		response.AppError(c, err)
+		return
+	}
+	actor := auth.Actor{
+		UserID:  userID,
+		IsAdmin: auth.IsAdminRole(roles),
+	}
+	ctx := c.Request.Context()
+	post, err := h.service.Archive(
+		ctx,
+		actor,
+		id,
+	)
+	if err != nil {
+		response.AppError(c, err)
+		return
+	}
+	response.Success(c, dto.FromModel(post))
 }

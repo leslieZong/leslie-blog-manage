@@ -124,7 +124,7 @@ func New(cfg *config.Config) (*Server, error) {
 	userH := userHandler.NewUserHandler(userSvc)
 	authH := handler.NewAuthHandler(authSvc, userSvc)
 	roleH := roleHandler.NewRoleHandler(roleSvc)
-	postH := postHandler.NewPostHandler(postSvc)
+	postH := postHandler.NewPostHandler(postSvc, enforcer)
 	categoryH := categoryHandler.NewCategoryHandler(
 		categorySvc,
 	)

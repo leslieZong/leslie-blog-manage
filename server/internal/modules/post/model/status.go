@@ -31,3 +31,11 @@ func (s PostStatus) IsValid() bool {
 		return false
 	}
 }
+
+func (s PostStatus) CanPublish() bool {
+	return s == PostStatusDraft
+}
+
+func (s PostStatus) CanArchive() bool {
+	return s == PostStatusPublished
+}

@@ -70,4 +70,11 @@ func RegisterRoutes(
 		middleware.Permission(enforcer, permission.PostPublish),
 		postHandler.Publish,
 	)
+
+	// 归档文章。
+	posts.POST(
+		"/:id/archive",
+		middleware.Permission(enforcer, permission.PostUpdate),
+		postHandler.Archive,
+	)
 }

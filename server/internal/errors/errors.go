@@ -63,6 +63,8 @@ const (
 	// ErrPostArchived 归档文章不能执行当前操作
 	ErrPostArchived = 40004
 
+	ErrPostNotOwner = 40311
+
 	// Category 专属错误码
 	// =============================
 

@@ -7,6 +7,7 @@ import (
 	categoryRepository "leslie-blog-server/internal/modules/category/repository"
 	"leslie-blog-server/internal/modules/post/model"
 	"leslie-blog-server/internal/modules/post/repository"
+	"leslie-blog-server/internal/pkg/auth"
 	"leslie-blog-server/internal/pkg/ulid"
 	"net/http"
 	"strings"
@@ -71,6 +72,7 @@ type PostService interface {
 	// Update 更新文章。
 	Update(
 		ctx context.Context,
+		actor auth.Actor,
 		id string,
 		title string,
 		slug string,
@@ -85,12 +87,21 @@ type PostService interface {
 	// 当前设计为软删除。
 	Delete(
 		ctx context.Context,
+		actor auth.Actor,
 		id string,
 	) error
 
 	// Publish 发布文章。
 	Publish(
 		ctx context.Context,
+		actor auth.Actor,
+		id string,
+	) (*model.Post, error)
+
+	// Archive 归档文章。
+	Archive(
+		ctx context.Context,
+		actor auth.Actor,
 		id string,
 	) (*model.Post, error)
 
@@ -507,9 +518,24 @@ func (s *postService) GetPublicBySlug(
 	return post, nil
 }
 
+func canModifyPost(
+	post *model.Post,
+	actor auth.Actor,
+) bool {
+
+	// 管理员可以操作所有文章。
+	if actor.IsAdmin {
+		return true
+	}
+
+	// 普通编辑只能操作自己创建的文章。
+	return post.AuthorID == actor.UserID
+}
+
 // Update 更新文章内容。
 func (s *postService) Update(
 	ctx context.Context,
+	actor auth.Actor,
 	id string,
 	title string,
 	slug string,
@@ -519,18 +545,52 @@ func (s *postService) Update(
 	cover *string,
 ) (*model.Post, error) {
 
-	// -------------------------------------------------------
-	// 1. 参数校验
-	// -------------------------------------------------------
+	// --------------------------------------------------
+	// 1. 查询文章
+	// --------------------------------------------------
 
 	id = strings.TrimSpace(id)
-	title = strings.TrimSpace(title)
-	slug = strings.TrimSpace(slug)
-	content = strings.TrimSpace(content)
-
 	if id == "" {
 		return nil, errors.New("文章 ID 不能为空")
 	}
+	post, err := s.repo.FindByID(ctx, id)
+
+	if err != nil {
+		return nil, err
+	}
+	// --------------------------------------------------
+	// 2. 权限：检查当前用户是否可以修改这篇文章
+	// --------------------------------------------------
+	//
+	// RBAC Middleware 已经检查：
+	//
+	//     user -> post:update
+	//
+	// 这里检查的是第二层：
+	//
+	//     这个用户能不能修改“这一篇”文章？
+	//
+	// Admin：
+	//     可以修改任何文章
+	//
+	// Editor：
+	//     只能修改自己的文章
+
+	if !canModifyPost(post, actor) {
+		return nil, appErrors.New(
+			appErrors.ErrPostNotOwner,
+			http.StatusForbidden,
+			"you do not have permission to modify this post",
+		)
+	}
+
+	// --------------------------------------------------
+	// 3. 基础参数校验
+	// --------------------------------------------------
+
+	title = strings.TrimSpace(title)
+	slug = strings.TrimSpace(slug)
+	content = strings.TrimSpace(content)
 
 	if title == "" {
 		return nil, errors.New("文章标题不能为空")
@@ -544,15 +604,9 @@ func (s *postService) Update(
 		return nil, errors.New("文章内容不能为空")
 	}
 
-	// -------------------------------------------------------
-	// 2. 查询文章
-	// -------------------------------------------------------
-
-	post, err := s.repo.FindByID(ctx, id)
-
-	if err != nil {
-		return nil, err
-	}
+	// --------------------------------------------------
+	// 4. 校验 Category
+	// --------------------------------------------------
 
 	if err := s.validateCategory(
 		ctx,
@@ -561,9 +615,9 @@ func (s *postService) Update(
 		return nil, err
 	}
 
-	// -------------------------------------------------------
-	// 3. 检查 slug 是否被其他文章占用
-	// -------------------------------------------------------
+	// --------------------------------------------------
+	// 5. 检查 slug 是否与其他文章冲突
+	// --------------------------------------------------
 
 	existingPost, err := s.repo.FindBySlug(ctx, slug)
 
@@ -580,9 +634,9 @@ func (s *postService) Update(
 		return nil, err
 	}
 
-	// -------------------------------------------------------
-	// 4. 修改允许修改的字段
-	// -------------------------------------------------------
+	// --------------------------------------------------
+	// 6. 修改允许修改的字段
+	// --------------------------------------------------
 
 	post.Title = title
 	post.Slug = slug
@@ -602,9 +656,9 @@ func (s *postService) Update(
 	//
 	// 因为这些字段不是普通 Update 应该直接修改的。
 
-	// -------------------------------------------------------
-	// 5. 保存
-	// -------------------------------------------------------
+	// --------------------------------------------------
+	// 7. 保存
+	// --------------------------------------------------
 
 	if err := s.repo.Update(ctx, post); err != nil {
 		return nil, err
@@ -616,6 +670,7 @@ func (s *postService) Update(
 // Publish 发布文章。
 func (s *postService) Publish(
 	ctx context.Context,
+	actor auth.Actor,
 	id string,
 ) (*model.Post, error) {
 
@@ -648,26 +703,42 @@ func (s *postService) Publish(
 		)
 	}
 
-	// -------------------------------------------------------
-	// 3. 检查当前文章状态
-	// -------------------------------------------------------
-
-	status := model.PostStatus(post.Status)
-
-	if status == model.PostStatusArchived {
+	// 第一层：资源所有权。
+	if !canModifyPost(post, actor) {
 		return nil, appErrors.New(
-			appErrors.ErrPostArchived,
-			http.StatusConflict,
-			"post is archived",
+			appErrors.ErrPostNotOwner,
+			http.StatusForbidden,
+			"you do not have permission to publish this post",
 		)
 	}
 
-	if status == model.PostStatusPublished {
-		return nil, appErrors.New(
-			appErrors.ErrPostAlreadyPublished,
-			http.StatusConflict,
-			"post is already published",
-		)
+	// -------------------------------------------------------
+	// 3. 检查当前文章状态
+	//
+	// 当前设计：
+	//
+	// draft     → 可以发布
+	// published → 不允许重复发布
+	// archived  → 不允许直接发布
+	// -------------------------------------------------------
+
+	status := model.PostStatus(post.Status)
+	if !status.CanPublish() {
+		if status == model.PostStatusArchived {
+			return nil, appErrors.New(
+				appErrors.ErrPostArchived,
+				http.StatusConflict,
+				"archived post cannot be published",
+			)
+		}
+
+		if status == model.PostStatusPublished {
+			return nil, appErrors.New(
+				appErrors.ErrPostAlreadyPublished,
+				http.StatusConflict,
+				"post is already published",
+			)
+		}
 	}
 
 	// -------------------------------------------------------
@@ -690,6 +761,67 @@ func (s *postService) Publish(
 
 	return post, nil
 }
+func (s *postService) Archive(
+	ctx context.Context,
+	actor auth.Actor,
+	id string,
+) (*model.Post, error) {
+
+	post, err := s.repo.FindByID(
+		ctx,
+		id,
+	)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, appErrors.New(
+				appErrors.ErrPostNotFound,
+				http.StatusNotFound,
+				"post not found",
+			)
+		}
+
+		return nil, err
+	}
+
+	// Ownership。
+	if !canModifyPost(post, actor) {
+		return nil, appErrors.New(
+			appErrors.ErrPostNotOwner,
+			http.StatusForbidden,
+			"you do not have permission to archive this post",
+		)
+	}
+
+	// 只有 published 状态才能归档。
+	if !model.PostStatus(post.Status).CanArchive() {
+
+		if post.Status == string(model.PostStatusArchived) {
+			return nil, appErrors.New(
+				appErrors.ErrPostArchived,
+				http.StatusBadRequest,
+				"post is already archived",
+			)
+		}
+
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"only published post can be archived",
+		)
+	}
+
+	post.Status = string(model.PostStatusArchived)
+
+	if err := s.repo.Update(
+		ctx,
+		post,
+	); err != nil {
+		return nil, err
+	}
+
+	return post, nil
+}
 
 // Delete 删除文章。
 //
@@ -697,6 +829,7 @@ func (s *postService) Publish(
 // Repository 内部会设置 deleted_at。
 func (s *postService) Delete(
 	ctx context.Context,
+	actor auth.Actor,
 	id string,
 ) error {
 
@@ -707,8 +840,17 @@ func (s *postService) Delete(
 	}
 
 	// 先确认文章存在。
-	if _, err := s.repo.FindByID(ctx, id); err != nil {
+	post, err := s.repo.FindByID(ctx, id)
+	if err != nil {
 		return err
+	}
+	// 权限第二层检查。
+	if !canModifyPost(post, actor) {
+		return appErrors.New(
+			appErrors.ErrPostNotOwner,
+			http.StatusForbidden,
+			"you do not have permission to delete this post",
+		)
 	}
 
 	// 执行软删除。
