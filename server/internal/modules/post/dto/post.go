@@ -43,6 +43,8 @@ type CreatePostRequest struct {
 
 	// 分类 ID
 	CategoryID string `json:"categoryId"`
+	// TagIDs 标签 ID 列表。
+	TagIDs []string `json:"tagIds"`
 }
 
 // UpdatePostRequest 更新文章请求。
@@ -74,6 +76,8 @@ type UpdatePostRequest struct {
 
 	// 分类 ID
 	CategoryID string `json:"categoryId"`
+	// TagIDs 标签 ID 列表。
+	TagIDs []string `json:"tagIds"`
 }
 
 // PostResponse 文章详情响应。
@@ -95,6 +99,8 @@ type PostResponse struct {
 	CategoryID string `json:"categoryId"`
 	// Category 是给前端展示用的分类信息。
 	Category *categoryDto.SimpleCategoryResponse `json:"category"`
+
+	Tags []*SimpleTagResponse `json:"tags"`
 
 	// Summary 文章摘要。
 	Summary *string `json:"summary"`
@@ -142,6 +148,7 @@ func FromModel(post *model.Post) *PostResponse {
 		CategoryID: post.CategoryID,
 		// 不把整个 GORM Category Model 直接返回给前端。
 		Category:    categoryDto.FromSimpleModel(post.Category),
+		Tags:        FromSimpleModelList(post.Tags),
 		Summary:     post.Summary,
 		Content:     post.Content,
 		Cover:       post.Cover,
@@ -166,6 +173,7 @@ type PostListItem struct {
 	CategoryID string  `json:"categoryId"`
 	// Category 是给前端展示用的分类信息。
 	Category    *categoryDto.SimpleCategoryResponse `json:"category"`
+	Tags        []*SimpleTagResponse                `json:"tags"`
 	Cover       *string                             `json:"cover"`
 	Status      string                              `json:"status"`
 	AuthorID    string                              `json:"author_id"`
@@ -193,6 +201,7 @@ func FromModelList(posts []*model.Post) []*PostListItem {
 			CategoryID: post.CategoryID,
 			// 不把整个 GORM Category Model 直接返回给前端。
 			Category:    categoryDto.FromSimpleModel(post.Category),
+			Tags:        FromSimpleModelList(post.Tags),
 			Summary:     post.Summary,
 			Cover:       post.Cover,
 			Status:      post.Status,

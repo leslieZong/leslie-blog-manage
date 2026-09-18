@@ -41,6 +41,14 @@ func NewPostRepository(
 		db: db,
 	}
 }
+func newPostRepository(
+	db *gorm.DB,
+) PostRepository {
+
+	return &gormPostRepository{
+		db: db,
+	}
+}
 
 // Create 创建文章。
 func (r *gormPostRepository) Create(
@@ -74,6 +82,7 @@ func (r *gormPostRepository) FindByID(
 	err := r.db.
 		WithContext(ctx).
 		Preload("Category").
+		Preload("Tags").
 		Where("id = ?", id).
 		First(&post).
 		Error
@@ -96,6 +105,7 @@ func (r *gormPostRepository) FindBySlug(
 	err := r.db.
 		WithContext(ctx).
 		Preload("Category").
+		Preload("Tags").
 		Where("slug = ?", slug).
 		First(&post).
 		Error
@@ -129,6 +139,7 @@ func (r *gormPostRepository) FindAll(
 	err := r.db.
 		WithContext(ctx).
 		Preload("Category").
+		Preload("Tags").
 		Where("deleted_at IS NULL").
 		Order("created_at DESC").
 		Find(&posts).
@@ -150,6 +161,7 @@ func (r *gormPostRepository) FindPublished(
 	err := r.db.
 		WithContext(ctx).
 		Preload("Category").
+		Preload("Tags").
 		Where("status = ?", model.PostStatusPublished).
 		Where("deleted_at IS NULL").
 		Order("published_at DESC").
@@ -257,7 +269,9 @@ func (r *gormPostRepository) FindPage(
 	// 查询当前页面的数据。
 	query = r.db.
 		WithContext(ctx).
+		Model(&model.Post{}).
 		Preload("Category").
+		Preload("Tags").
 		Where("deleted_at IS NULL")
 	if params.Status != "" {
 		query = query.Where("status = ?", params.Status)
@@ -309,7 +323,9 @@ func (r *gormPostRepository) FindPublishedPage(
 	// 查询当前页
 	query = r.db.
 		WithContext(ctx).
+		Model(&model.Post{}).
 		Preload("Category").
+		Preload("Tags").
 		Where(
 			"status = ?",
 			model.PostStatusPublished,

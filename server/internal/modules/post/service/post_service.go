@@ -7,7 +7,9 @@ import (
 	categoryRepository "leslie-blog-server/internal/modules/category/repository"
 	"leslie-blog-server/internal/modules/post/model"
 	"leslie-blog-server/internal/modules/post/repository"
+	tagService "leslie-blog-server/internal/modules/tag/service"
 	"leslie-blog-server/internal/pkg/auth"
+	"leslie-blog-server/internal/pkg/database"
 	"leslie-blog-server/internal/pkg/ulid"
 	"net/http"
 	"strings"
@@ -29,6 +31,7 @@ type PostService interface {
 		title string,
 		slug string,
 		categoryID string,
+		tagIDs []string,
 		summary *string,
 		content string,
 		cover *string,
@@ -77,6 +80,7 @@ type PostService interface {
 		title string,
 		slug string,
 		categoryID string,
+		tagIDs []string,
 		summary *string,
 		content string,
 		cover *string,
@@ -119,19 +123,55 @@ type PostService interface {
 // 外部只需要通过 PostService 接口使用它。
 type postService struct {
 	// repository 负责数据库操作。
-	repo         repository.PostRepository
-	categoryRepo categoryRepository.CategoryRepository
+	repo               repository.PostRepository
+	postTagRepo        repository.PostTagRepository
+	categoryRepo       categoryRepository.CategoryRepository
+	tagService         tagService.TagService
+	transactionManager *database.TransactionManager
 }
 
 func NewPostService(
 	repo repository.PostRepository,
+	postTagRepo repository.PostTagRepository,
 	categoryRepo categoryRepository.CategoryRepository,
+	tagService tagService.TagService,
+	transactionManager *database.TransactionManager,
 ) PostService {
 
 	return &postService{
-		repo:         repo,
-		categoryRepo: categoryRepo,
+		repo:               repo,
+		postTagRepo:        postTagRepo,
+		categoryRepo:       categoryRepo,
+		tagService:         tagService,
+		transactionManager: transactionManager,
 	}
+}
+
+// normalizeIDs 归一化 ID 列表，去重并去空格。
+func normalizeIDs(ids []string) []string {
+
+	result := make([]string, 0, len(ids))
+
+	seen := make(map[string]struct{})
+
+	for _, id := range ids {
+
+		id = strings.TrimSpace(id)
+
+		if id == "" {
+			continue
+		}
+
+		if _, exists := seen[id]; exists {
+			continue
+		}
+
+		seen[id] = struct{}{}
+
+		result = append(result, id)
+	}
+
+	return result
 }
 
 // Create 创建一篇文章。
@@ -141,10 +181,24 @@ func (s *postService) Create(
 	title string,
 	slug string,
 	categoryID string,
+	tagIDs []string,
 	summary *string,
 	content string,
 	cover *string,
 ) (*model.Post, error) {
+
+	// 1. 验证 Actor
+	// 2. 验证标题
+	// 3. 验证 Slug
+	// 4. 验证 Category
+	// 5. 清理 TagIDs
+	// 6. 验证 TagIDs
+	// 7. 检查 Slug 唯一
+	// 8. 创建 Post
+	// 9. 开启事务
+	// 10. 创建 Post
+	// 11. 创建 PostTag
+	// 12. Commit
 
 	// -------------------------------------------------------
 	// 1. 基础参数校验
@@ -224,6 +278,16 @@ func (s *postService) Create(
 		)
 	}
 
+	// 归一化 Tag ID 列表
+	tagIDs = normalizeIDs(tagIDs)
+	// 检查 Tag 是否存在且启用
+	if _, err := s.tagService.FindByIDs(
+		ctx,
+		tagIDs,
+	); err != nil {
+		return nil, err
+	}
+
 	// -------------------------------------------------------
 	// 3. 创建 Post Model
 	// -------------------------------------------------------
@@ -255,14 +319,43 @@ func (s *postService) Create(
 	// -------------------------------------------------------
 	// 4. 保存到数据库
 	// -------------------------------------------------------
+	err = s.transactionManager.WithTransaction(
+		ctx,
+		func(tx *gorm.DB) error {
 
-	if err := s.repo.Create(ctx, post); err != nil {
+			postRepo := repository.NewPostRepository(tx)
+
+			postTagRepo := repository.NewPostTagRepository(tx)
+
+			// 创建 Post
+			if err := postRepo.Create(ctx, post); err != nil {
+				return err
+			}
+
+			// 创建 Tag 关联
+			if err := postTagRepo.ReplaceTags(
+				ctx,
+				post.ID,
+				tagIDs,
+			); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
 		return nil, err
 	}
 
 	// -------------------------------------------------------
 	// 5. 返回创建后的文章
 	// -------------------------------------------------------
+	// 刷新文章，确保关联的 Tag 刷新。
+	post, err = s.repo.FindByID(ctx, post.ID)
+	if err != nil {
+		return nil, err
+	}
 
 	return post, nil
 }
@@ -540,6 +633,7 @@ func (s *postService) Update(
 	title string,
 	slug string,
 	categoryID string,
+	tagIDs []string,
 	summary *string,
 	content string,
 	cover *string,
@@ -614,6 +708,15 @@ func (s *postService) Update(
 	); err != nil {
 		return nil, err
 	}
+	// 归一化 Tag ID 列表
+	tagIDs = normalizeIDs(tagIDs)
+	// 检查 Tag 是否存在且启用
+	if _, err := s.tagService.FindByIDs(
+		ctx,
+		tagIDs,
+	); err != nil {
+		return nil, err
+	}
 
 	// --------------------------------------------------
 	// 5. 检查 slug 是否与其他文章冲突
@@ -660,10 +763,39 @@ func (s *postService) Update(
 	// 7. 保存
 	// --------------------------------------------------
 
-	if err := s.repo.Update(ctx, post); err != nil {
+	err = s.transactionManager.WithTransaction(
+		ctx,
+		func(tx *gorm.DB) error {
+
+			postRepo := repository.NewPostRepository(tx)
+
+			postTagRepo := repository.NewPostTagRepository(tx)
+
+			// 创建 Post
+			if err := postRepo.Update(ctx, post); err != nil {
+				return err
+			}
+
+			// 创建 Tag 关联
+			if err := postTagRepo.ReplaceTags(
+				ctx,
+				post.ID,
+				tagIDs,
+			); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
 		return nil, err
 	}
-
+	// 刷新文章，确保关联的 Tag 刷新。
+	post, err = s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
 	return post, nil
 }
 

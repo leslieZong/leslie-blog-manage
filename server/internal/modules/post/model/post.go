@@ -2,6 +2,8 @@ package model
 
 import (
 	category "leslie-blog-server/internal/modules/category/model"
+	tagModel "leslie-blog-server/internal/modules/tag/model"
+
 	"time"
 
 	"gorm.io/gorm"
@@ -81,6 +83,20 @@ type Post struct {
 	//
 	// 表示这个关联对象可以不存在。
 	Category *category.Category `gorm:"foreignKey:CategoryID;references:ID"`
+
+	// Tags 表示文章所属的标签。
+	//
+	// 数据库关系：
+	//
+	// posts
+	//   ↓
+	// post_tags
+	//   ↓
+	// tags
+	//
+	// many2many 表示：
+	// 一个 Post 可以有多个 Tag。
+	Tags []*tagModel.Tag `gorm:"many2many:post_tags;foreignKey:ID;joinForeignKey:PostID;References:ID;joinReferences:TagID"`
 
 	// PublishedAt 表示文章第一次发布的时间。
 	//

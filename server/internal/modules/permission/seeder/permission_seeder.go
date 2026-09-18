@@ -138,6 +138,14 @@ var systemPermissions = []SeedPermission{
 	},
 
 	{
+		Name:        "post:archive",
+		DisplayName: "归档文章",
+		Resource:    "post",
+		Action:      "archive",
+		Description: "归档文章",
+	},
+
+	{
 		Name:        "category:read",
 		DisplayName: "查看分类",
 		Resource:    "category",

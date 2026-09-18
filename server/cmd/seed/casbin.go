@@ -32,6 +32,7 @@ func seedCasbin(
 		{"post", "update"},
 		{"post", "delete"},
 		{"post", "publish"},
+		{"post", "archive"},
 
 		// Category
 		{"category", "read"},

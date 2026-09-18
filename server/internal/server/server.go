@@ -27,6 +27,7 @@ import (
 	userRepository "leslie-blog-server/internal/modules/user/repository"
 	userService "leslie-blog-server/internal/modules/user/service"
 	"leslie-blog-server/internal/pkg/casbin"
+	pkgDatabase "leslie-blog-server/internal/pkg/database"
 	"leslie-blog-server/internal/router"
 
 	"github.com/gin-gonic/gin"
@@ -92,6 +93,7 @@ func New(cfg *config.Config) (*Server, error) {
 	postRepo := postRepository.NewPostRepository(db)
 	categoryRepo := categoryRepository.NewCategoryRepository(db)
 	tagRepo := tagRepository.NewTagRepository(db)
+	postTagRepo := postRepository.NewPostTagRepository(db)
 
 	// ==================================================
 	// 5. 创建模块 Service
@@ -107,9 +109,15 @@ func New(cfg *config.Config) (*Server, error) {
 		permissionRepo,
 		enforcer,
 	)
+	tagSvc := tagService.NewTagService(
+		tagRepo,
+	)
 	postSvc := postService.NewPostService(
 		postRepo,
+		postTagRepo,
 		categoryRepo,
+		tagSvc,
+		pkgDatabase.NewTransactionManager(db),
 	)
 	authSvc := authService.NewAuthService(
 		userRepo,
@@ -119,9 +127,6 @@ func New(cfg *config.Config) (*Server, error) {
 	)
 	categorySvc := categoryService.NewCategoryService(
 		categoryRepo,
-	)
-	tagSvc := tagService.NewTagService(
-		tagRepo,
 	)
 
 	// ==================================================

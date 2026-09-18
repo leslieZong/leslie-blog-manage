@@ -20,6 +20,7 @@ const (
 	PostUpdate  = "post:update"
 	PostDelete  = "post:delete"
 	PostPublish = "post:publish"
+	PostArchive = "post:archive"
 
 	// Category 权限
 	CategoryRead   = "category:read"

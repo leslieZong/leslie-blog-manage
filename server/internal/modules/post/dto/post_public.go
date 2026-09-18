@@ -29,6 +29,7 @@ type PublicPostResponse struct {
 	CategoryID string `json:"categoryId"`
 	// Category 是给前端展示用的分类信息。
 	Category *categoryDto.SimpleCategoryResponse `json:"category"`
+	Tags     []*SimpleTagResponse                `json:"tags"`
 
 	// 文章摘要
 	Summary *string `json:"summary"`
@@ -63,6 +64,7 @@ type PublicPostListItem struct {
 	CategoryID string `json:"categoryId"`
 	// Category 是给前端展示用的分类信息。
 	Category *categoryDto.SimpleCategoryResponse `json:"category"`
+	Tags     []*SimpleTagResponse                `json:"tags"`
 
 	Summary *string `json:"summary"`
 
@@ -88,6 +90,7 @@ func FromPublicModel(post *model.Post) *PublicPostResponse {
 		CategoryID: post.CategoryID,
 		// 不把整个 GORM Category Model 直接返回给前端。
 		Category:    categoryDto.FromSimpleModel(post.Category),
+		Tags:        FromSimpleModelList(post.Tags),
 		Summary:     post.Summary,
 		Content:     post.Content,
 		Cover:       post.Cover,
@@ -113,6 +116,7 @@ func FromPublicModelList(posts []*model.Post) []*PublicPostListItem {
 			Slug:        post.Slug,
 			CategoryID:  post.CategoryID,
 			Category:    categoryDto.FromSimpleModel(post.Category),
+			Tags:        FromSimpleModelList(post.Tags),
 			Summary:     post.Summary,
 			Cover:       post.Cover,
 			PublishedAt: post.PublishedAt,
