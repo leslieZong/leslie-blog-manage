@@ -34,6 +34,7 @@ type Router struct {
 	publicCategoryHandler *categoryHandler.PublicCategoryHandler
 	tagHandler            *tagHandler.TagHandler
 	projectHandler        *projectHandler.ProjectHandler
+	projectPublicHandler  *projectHandler.ProjectPublicHandler
 
 	// jwtMiddleware 是 JWT 认证中间件。
 	//
@@ -55,6 +56,7 @@ func New(
 	publicCategoryHandler *categoryHandler.PublicCategoryHandler,
 	tagHandler *tagHandler.TagHandler,
 	projectHandler *projectHandler.ProjectHandler,
+	projectPublicHandler *projectHandler.ProjectPublicHandler,
 	jwtMiddleware gin.HandlerFunc,
 	enforcer *casbin.Enforcer,
 ) *Router {
@@ -70,6 +72,7 @@ func New(
 		publicCategoryHandler: publicCategoryHandler,
 		tagHandler:            tagHandler,
 		projectHandler:        projectHandler,
+		projectPublicHandler:  projectPublicHandler,
 		jwtMiddleware:         jwtMiddleware,
 		enforcer:              enforcer,
 	}
@@ -96,6 +99,10 @@ func (r *Router) Register() {
 	category.RegisterPublicRoutes(
 		v1,
 		r.publicCategoryHandler,
+	)
+	project.RegisterPublicRoutes(
+		v1,
+		r.projectPublicHandler,
 	)
 
 	// 当前还没有公共 API。

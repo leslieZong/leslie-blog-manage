@@ -200,3 +200,45 @@ func (r *projectRepository) Delete(
 		).
 		Error
 }
+
+func (r *projectRepository) FindPublicByID(
+	ctx context.Context,
+	id string,
+) (*model.Project, error) {
+
+	var project model.Project
+
+	err := r.db.
+		WithContext(ctx).
+		Where("id = ?", id).
+		Where("status = ?", 1).
+		First(&project).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &project, nil
+}
+
+func (r *projectRepository) FindPublicBySlug(
+	ctx context.Context,
+	slug string,
+) (*model.Project, error) {
+
+	var project model.Project
+
+	err := r.db.
+		WithContext(ctx).
+		Where("slug = ?", slug).
+		Where("status = ?", 1).
+		First(&project).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &project, nil
+}

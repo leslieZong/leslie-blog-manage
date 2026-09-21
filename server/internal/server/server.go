@@ -161,6 +161,9 @@ func New(cfg *config.Config) (*Server, error) {
 	publicCategoryHandler := categoryHandler.NewPublicCategoryHandler(
 		categorySvc,
 	)
+	projectPublicHandler := projectHandler.NewProjectPublicHandler(
+		projectSvc,
+	)
 
 	// ==================================================
 	// 9. 创建 JWT Middleware
@@ -198,6 +201,7 @@ func New(cfg *config.Config) (*Server, error) {
 		publicCategoryHandler,
 		tagH,
 		projectH,
+		projectPublicHandler,
 		jwtMiddleware,
 		enforcer,
 	)

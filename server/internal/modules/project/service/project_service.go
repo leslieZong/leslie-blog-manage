@@ -46,6 +46,30 @@ type ProjectService interface {
 		ctx context.Context,
 		id string,
 	) error
+
+	// ListPublic 查询公开 Project。
+	//
+	// Public API 只能返回：
+	//
+	// status = 1
+	//
+	// 客户端不能通过 query 参数覆盖 status。
+	ListPublic(
+		ctx context.Context,
+		query repository.ProjectListQuery,
+	) ([]*model.Project, int64, error)
+
+	// GetPublicByID 根据 ID 查询公开 Project。
+	GetPublicByID(
+		ctx context.Context,
+		id string,
+	) (*model.Project, error)
+
+	// GetPublicBySlug 根据 slug 查询公开 Project。
+	GetPublicBySlug(
+		ctx context.Context,
+		slug string,
+	) (*model.Project, error)
 }
 
 type projectService struct {
@@ -439,4 +463,103 @@ func (s *projectService) Delete(
 		ctx,
 		id,
 	)
+}
+
+func (s *projectService) ListPublic(
+	ctx context.Context,
+	query repository.ProjectListQuery,
+) ([]*model.Project, int64, error) {
+
+	// Public API 不允许客户端控制 status。
+	//
+	// 无论客户端传：
+	//
+	// ?status=0
+	// ?status=1
+	//
+	// 这里最终都强制：
+	//
+	// status = 1
+	status := int8(1)
+
+	query.Status = &status
+
+	list, total, err := s.repo.FindPage(
+		ctx,
+		query,
+	)
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return list, total, nil
+}
+
+func (s *projectService) GetPublicByID(
+	ctx context.Context,
+	id string,
+) (*model.Project, error) {
+
+	project, err := s.repo.FindPublicByID(
+		ctx,
+		id,
+	)
+
+	if err != nil {
+
+		if errors.Is(
+			err,
+			gorm.ErrRecordNotFound,
+		) {
+			return nil, appErrors.New(
+				appErrors.ErrNotFound,
+				http.StatusNotFound,
+				"project not found",
+			)
+		}
+
+		return nil, err
+	}
+
+	return project, nil
+}
+
+func (s *projectService) GetPublicBySlug(
+	ctx context.Context,
+	slug string,
+) (*model.Project, error) {
+
+	slug = strings.TrimSpace(slug)
+
+	if slug == "" {
+		return nil, appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"project slug is required",
+		)
+	}
+
+	project, err := s.repo.FindPublicBySlug(
+		ctx,
+		slug,
+	)
+
+	if err != nil {
+
+		if errors.Is(
+			err,
+			gorm.ErrRecordNotFound,
+		) {
+			return nil, appErrors.New(
+				appErrors.ErrNotFound,
+				http.StatusNotFound,
+				"project not found",
+			)
+		}
+
+		return nil, err
+	}
+
+	return project, nil
 }

@@ -49,4 +49,13 @@ type ProjectRepository interface {
 		ctx context.Context,
 		id string,
 	) error
+	FindPublicByID(
+		ctx context.Context,
+		id string,
+	) (*model.Project, error)
+
+	FindPublicBySlug(
+		ctx context.Context,
+		slug string,
+	) (*model.Project, error)
 }
