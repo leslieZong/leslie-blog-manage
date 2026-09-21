@@ -17,6 +17,9 @@ import (
 	postHandler "leslie-blog-server/internal/modules/post/handler"
 	postRepository "leslie-blog-server/internal/modules/post/repository"
 	postService "leslie-blog-server/internal/modules/post/service"
+	projectHandler "leslie-blog-server/internal/modules/project/handler"
+	projectRepository "leslie-blog-server/internal/modules/project/repository"
+	projectService "leslie-blog-server/internal/modules/project/service"
 	roleHandler "leslie-blog-server/internal/modules/role/handler"
 	roleRepository "leslie-blog-server/internal/modules/role/repository"
 	roleService "leslie-blog-server/internal/modules/role/service"
@@ -94,6 +97,7 @@ func New(cfg *config.Config) (*Server, error) {
 	categoryRepo := categoryRepository.NewCategoryRepository(db)
 	tagRepo := tagRepository.NewTagRepository(db)
 	postTagRepo := postRepository.NewPostTagRepository(db)
+	projectRepo := projectRepository.NewProjectRepository(db)
 
 	// ==================================================
 	// 5. 创建模块 Service
@@ -128,6 +132,9 @@ func New(cfg *config.Config) (*Server, error) {
 	categorySvc := categoryService.NewCategoryService(
 		categoryRepo,
 	)
+	projectSvc := projectService.NewProjectService(
+		projectRepo,
+	)
 
 	// ==================================================
 	// 6. 创建模块 Handler
@@ -142,6 +149,9 @@ func New(cfg *config.Config) (*Server, error) {
 	)
 	tagH := tagHandler.NewTagHandler(
 		tagSvc,
+	)
+	projectH := projectHandler.NewProjectHandler(
+		projectSvc,
 	)
 
 	publicPostHandler := postHandler.NewPublicPostHandler(
@@ -187,6 +197,7 @@ func New(cfg *config.Config) (*Server, error) {
 		categoryH,
 		publicCategoryHandler,
 		tagH,
+		projectH,
 		jwtMiddleware,
 		enforcer,
 	)
