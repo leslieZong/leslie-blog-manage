@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -193,4 +194,64 @@ func (r *gormCategoryRepository) CountPosts(
 		Error
 
 	return count, err
+}
+
+func (r *gormCategoryRepository) FindPage(
+	ctx context.Context,
+	query CategoryListQuery,
+) ([]*model.Category, int64, error) {
+
+	var (
+		categories []*model.Category
+		total      int64
+	)
+
+	db := r.db.
+		WithContext(ctx).
+		Model(&model.Category{}).
+		Where("deleted_at IS NULL")
+
+	// 关键字搜索。
+	if query.Keyword != "" {
+
+		keyword := "%" +
+			strings.TrimSpace(query.Keyword) +
+			"%"
+
+		db = db.Where(
+			"name LIKE ? OR slug LIKE ?",
+			keyword,
+			keyword,
+		)
+	}
+
+	// 状态筛选。
+	if query.Status != nil {
+
+		db = db.Where(
+			"status = ?",
+			*query.Status,
+		)
+	}
+
+	// Count。
+	if err := db.
+		Count(&total).
+		Error; err != nil {
+		return nil, 0, err
+	}
+
+	// List。
+	if err := db.
+		Order("sort ASC").
+		Order("created_at DESC").
+		Limit(query.PageSize).
+		Offset(query.Offset()).
+		Find(&categories).
+		Error; err != nil {
+
+		return nil, 0, err
+	}
+
+	return categories, total, nil
 }

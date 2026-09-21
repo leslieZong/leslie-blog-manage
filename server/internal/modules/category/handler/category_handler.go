@@ -2,13 +2,16 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/category/dto"
+	"leslie-blog-server/internal/modules/category/repository"
 	"leslie-blog-server/internal/modules/category/service"
+	"leslie-blog-server/internal/pkg/pagination"
 	"leslie-blog-server/internal/response"
 )
 
@@ -106,14 +109,64 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 
 	response.Success(c, result)
 }
+func ParseStatus(statusValue string) (*int8, error) {
+	if statusValue != "" {
+		value, err := strconv.ParseInt(
+			statusValue,
+			10,
+			8,
+		)
+
+		if err != nil {
+			return nil, appErrors.New(
+				http.StatusBadRequest,
+				appErrors.ErrInvalidParams,
+				"invalid status",
+			)
+
+		}
+
+		statusInt := int8(value)
+
+		if statusInt != 0 && statusInt != 1 {
+			return nil, appErrors.New(
+				http.StatusBadRequest,
+				appErrors.ErrInvalidParams,
+				"invalid status",
+			)
+		}
+		return &statusInt, nil
+	}
+	return nil, nil
+}
 
 // List 获取分类列表。
 //
 // GET /api/admin/v1/categories
 func (h *CategoryHandler) List(c *gin.Context) {
 
-	categories, err := h.service.List(
-		c.Request.Context(),
+	ctx := c.Request.Context()
+	statusValue := c.Query("status")
+	status, err := ParseStatus(statusValue)
+	if err != nil {
+		response.Error(
+			c,
+			http.StatusBadRequest,
+			appErrors.ErrInvalidParams,
+			"invalid status",
+		)
+		return
+	}
+
+	query := repository.CategoryListQuery{
+		Params:  pagination.Parse(c),
+		Keyword: c.Query("keyword"),
+		Status:  status,
+	}
+
+	categories, total, err := h.service.ListPage(
+		ctx,
+		query,
 	)
 
 	if err != nil {
@@ -126,8 +179,15 @@ func (h *CategoryHandler) List(c *gin.Context) {
 	}
 
 	// 将 Model 列表转换成 DTO 列表。
-	result := dto.FromModels(categories)
+	res := dto.FromModels(categories)
 
+	// 第四步：
+	// 构造统一分页结果。
+	result := pagination.NewResult(
+		res,
+		query.Params,
+		total,
+	)
 	response.Success(c, result)
 }
 

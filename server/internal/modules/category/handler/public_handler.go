@@ -1,10 +1,15 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 
+	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/category/dto"
+	"leslie-blog-server/internal/modules/category/repository"
 	"leslie-blog-server/internal/modules/category/service"
+	"leslie-blog-server/internal/pkg/pagination"
 	"leslie-blog-server/internal/response"
 )
 
@@ -50,8 +55,28 @@ func NewPublicCategoryHandler(
 // GET /api/v1/categories
 func (h *PublicCategoryHandler) List(c *gin.Context) {
 
-	categories, err := h.service.List(
-		c.Request.Context(),
+	ctx := c.Request.Context()
+	statusValue := c.Query("status")
+	status, err := ParseStatus(statusValue)
+	if err != nil {
+		response.Error(
+			c,
+			http.StatusBadRequest,
+			appErrors.ErrInvalidParams,
+			"invalid status",
+		)
+		return
+	}
+
+	query := repository.CategoryListQuery{
+		Params:  pagination.Parse(c),
+		Keyword: c.Query("keyword"),
+		Status:  status,
+	}
+
+	categories, total, err := h.service.ListPage(
+		ctx,
+		query,
 	)
 
 	if err != nil {
@@ -71,7 +96,7 @@ func (h *PublicCategoryHandler) List(c *gin.Context) {
 	// ID
 	// Name
 	// Slug
-	result := make(
+	res := make(
 		[]*dto.SimpleCategoryResponse,
 		0,
 		len(categories),
@@ -84,11 +109,18 @@ func (h *PublicCategoryHandler) List(c *gin.Context) {
 			continue
 		}
 
-		result = append(
-			result,
+		res = append(
+			res,
 			dto.FromSimpleModel(category),
 		)
 	}
+	// 第四步：
+	// 构造统一分页结果。
+	result := pagination.NewResult(
+		res,
+		query.Params,
+		total,
+	)
 
 	response.Success(c, result)
 }

@@ -56,6 +56,11 @@ type CategoryService interface {
 		ctx context.Context,
 		id string,
 	) error
+
+	ListPage(
+		ctx context.Context,
+		query repository.CategoryListQuery,
+	) ([]*model.Category, int64, error)
 }
 
 // categoryService
@@ -256,6 +261,66 @@ func (s *categoryService) List(
 	return categories, nil
 }
 
+func (s *categoryService) validateNameUnique(
+	ctx context.Context,
+	name string,
+	currentID string,
+) error {
+
+	category, err := s.repo.FindByName(
+		ctx,
+		name,
+	)
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if category.ID != currentID {
+		return appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"category name already exists",
+		)
+	}
+
+	return nil
+}
+
+func (s *categoryService) validateSlugUnique(
+	ctx context.Context,
+	slug string,
+	currentID string,
+) error {
+
+	category, err := s.repo.FindBySlug(
+		ctx,
+		slug,
+	)
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if category.ID != currentID {
+		return appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"category slug already exists",
+		)
+	}
+
+	return nil
+}
+
 // Update
 //
 // 修改分类。
@@ -332,56 +397,16 @@ func (s *categoryService) Update(
 	// 检查新的 name 是否和其他分类冲突
 	// --------------------------------------------------------
 
-	existing, err := s.repo.FindByName(ctx, name)
-
-	if err == nil &&
-		existing != nil &&
-		existing.ID != id {
-
-		return nil, appErrors.New(
-			appErrors.ErrCategoryNameExists,
-			http.StatusBadRequest,
-			"category name already exists",
-		)
-	}
-
-	if err != nil &&
-		!errors.Is(err, gorm.ErrRecordNotFound) {
-
-		return nil, appErrors.Wrap(
-			appErrors.ErrInternalServer,
-			http.StatusInternalServerError,
-			"failed to check category name",
-			err,
-		)
+	if err := s.validateNameUnique(ctx, name, id); err != nil {
+		return nil, err
 	}
 
 	// --------------------------------------------------------
 	// 检查新的 slug 是否和其他分类冲突
 	// --------------------------------------------------------
 
-	existing, err = s.repo.FindBySlug(ctx, slug)
-
-	if err == nil &&
-		existing != nil &&
-		existing.ID != id {
-
-		return nil, appErrors.New(
-			appErrors.ErrCategorySlugExists,
-			http.StatusBadRequest,
-			"category slug already exists",
-		)
-	}
-
-	if err != nil &&
-		!errors.Is(err, gorm.ErrRecordNotFound) {
-
-		return nil, appErrors.Wrap(
-			appErrors.ErrInternalServer,
-			http.StatusInternalServerError,
-			"failed to check category slug",
-			err,
-		)
+	if err := s.validateSlugUnique(ctx, slug, id); err != nil {
+		return nil, err
 	}
 
 	// --------------------------------------------------------
@@ -498,4 +523,21 @@ func (s *categoryService) Delete(
 	}
 
 	return nil
+}
+
+func (s *categoryService) ListPage(
+	ctx context.Context,
+	query repository.CategoryListQuery,
+) ([]*model.Category, int64, error) {
+
+	list, total, err := s.repo.FindPage(
+		ctx,
+		query,
+	)
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return list, total, nil
 }

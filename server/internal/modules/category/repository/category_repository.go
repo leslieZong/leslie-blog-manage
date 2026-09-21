@@ -37,6 +37,11 @@ type CategoryRepository interface {
 		ctx context.Context,
 	) ([]*model.Category, error)
 
+	FindPage(
+		ctx context.Context,
+		query CategoryListQuery,
+	) ([]*model.Category, int64, error)
+
 	// 创建分类。
 	Create(
 		ctx context.Context,
