@@ -5,7 +5,10 @@ import (
 
 	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/tag/dto"
+	"leslie-blog-server/internal/modules/tag/repository"
 	"leslie-blog-server/internal/modules/tag/service"
+	"leslie-blog-server/internal/pkg/pagination"
+	"leslie-blog-server/internal/pkg/utils"
 	"leslie-blog-server/internal/response"
 
 	"github.com/gin-gonic/gin"
@@ -144,10 +147,29 @@ func (h *TagHandler) GetByID(c *gin.Context) {
 // GET /tags
 // =========================================================
 
-func (h *TagHandler) List(c *gin.Context) {
+func (h *TagHandler) ListPage(c *gin.Context) {
 
-	tags, err := h.service.List(
-		c.Request.Context(),
+	ctx := c.Request.Context()
+	statusValue := c.Query("status")
+	status, err := utils.ParseStatus(statusValue)
+	if err != nil {
+		response.Error(
+			c,
+			http.StatusBadRequest,
+			appErrors.ErrInvalidParams,
+			"invalid status",
+		)
+		return
+	}
+	query := repository.TagListQuery{
+		Params:  pagination.Parse(c),
+		Keyword: c.Query("keyword"),
+		Status:  status,
+	}
+
+	tags, total, err := h.service.ListPage(
+		ctx,
+		query,
 	)
 
 	if err != nil {
@@ -161,7 +183,7 @@ func (h *TagHandler) List(c *gin.Context) {
 	}
 
 	// Model [] → DTO []。
-	result := make(
+	res := make(
 		[]*dto.TagResponse,
 		0,
 		len(tags),
@@ -169,11 +191,16 @@ func (h *TagHandler) List(c *gin.Context) {
 
 	for _, tag := range tags {
 
-		result = append(
-			result,
+		res = append(
+			res,
 			dto.FromModel(tag),
 		)
 	}
+	result := pagination.NewResult(
+		res,
+		query.Params,
+		total,
+	)
 
 	response.Success(
 		c,

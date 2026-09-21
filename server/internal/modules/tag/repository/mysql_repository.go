@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 
 	"leslie-blog-server/internal/modules/tag/model"
 
@@ -168,4 +169,114 @@ func (r *tagRepository) FindByIDs(
 	}
 
 	return tags, nil
+}
+
+func (r *tagRepository) FindPage(
+	ctx context.Context,
+	query TagListQuery,
+) ([]*model.Tag, int64, error) {
+
+	var (
+		tags  []*model.Tag
+		total int64
+	)
+
+	// --------------------------------------------------
+	// 1. 创建基础查询
+	// --------------------------------------------------
+	//
+	// deleted_at IS NULL：
+	// 只查询没有被软删除的 Tag。
+	//
+	// GORM 如果模型使用 *time.Time DeletedAt，
+	// 默认也会自动处理软删除。
+	//
+	// 这里显式写出来，是为了让初学者清楚业务条件。
+	//
+	db := r.db.
+		WithContext(ctx).
+		Model(&model.Tag{}).
+		Where("deleted_at IS NULL")
+
+	// --------------------------------------------------
+	// 2. 关键字搜索
+	// --------------------------------------------------
+
+	if query.Keyword != "" {
+
+		keyword := "%" +
+			strings.TrimSpace(query.Keyword) +
+			"%"
+
+		db = db.Where(
+			"name LIKE ? OR slug LIKE ?",
+			keyword,
+			keyword,
+		)
+	}
+
+	// --------------------------------------------------
+	// 3. 状态筛选
+	// --------------------------------------------------
+
+	if query.Status != nil {
+
+		db = db.Where(
+			"status = ?",
+			*query.Status,
+		)
+	}
+
+	// --------------------------------------------------
+	// 4. 查询总数量
+	// --------------------------------------------------
+
+	if err := db.
+		Count(&total).
+		Error; err != nil {
+
+		return nil, 0, err
+	}
+
+	// --------------------------------------------------
+	// 5. 查询当前页数据
+	// --------------------------------------------------
+
+	if err := db.
+		Order("created_at DESC").
+		Limit(query.PageSize).
+		Offset(query.Offset()).
+		Find(&tags).
+		Error; err != nil {
+
+		return nil, 0, err
+	}
+
+	return tags, total, nil
+}
+
+func (r *tagRepository) CountPosts(
+	ctx context.Context,
+	tagID string,
+) (int64, error) {
+
+	var count int64
+
+	err := r.db.
+		WithContext(ctx).
+		Table("post_tags AS pt").
+		Joins(
+			"JOIN posts AS p ON p.id = pt.post_id",
+		).
+		Where(
+			"pt.tag_id = ?",
+			tagID,
+		).
+		Where(
+			"p.deleted_at IS NULL",
+		).
+		Count(&count).
+		Error
+
+	return count, err
 }

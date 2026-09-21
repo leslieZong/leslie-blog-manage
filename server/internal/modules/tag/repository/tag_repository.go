@@ -92,4 +92,14 @@ type TagRepository interface {
 		ctx context.Context,
 		ids []string,
 	) ([]*model.Tag, error)
+
+	FindPage(
+		ctx context.Context,
+		query TagListQuery,
+	) ([]*model.Tag, int64, error)
+
+	CountPosts(
+		ctx context.Context,
+		tagID string,
+	) (int64, error)
 }

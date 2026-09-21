@@ -77,6 +77,12 @@ type TagService interface {
 		ctx context.Context,
 		ids []string,
 	) ([]*model.Tag, error)
+
+	// 分页查询 Tag。
+	ListPage(
+		ctx context.Context,
+		query repository.TagListQuery,
+	) ([]*model.Tag, int64, error)
 }
 
 // tagService 是 TagService 的具体实现。
@@ -215,6 +221,74 @@ func (s *tagService) List(
 
 	return s.tagRepo.FindAll(ctx)
 }
+func (s *tagService) validateNameUnique(
+	ctx context.Context,
+	name string,
+	currentID string,
+) error {
+
+	tag, err := s.tagRepo.FindByName(
+		ctx,
+		name,
+	)
+
+	if errors.Is(
+		err,
+		gorm.ErrRecordNotFound,
+	) {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// 找到了相同 name。
+	//
+	// 如果 ID 一样，说明是当前 Tag 自己。
+	if tag.ID == currentID {
+		return nil
+	}
+
+	return appErrors.New(
+		appErrors.ErrInvalidParams,
+		http.StatusBadRequest,
+		"tag name already exists",
+	)
+}
+
+func (s *tagService) validateSlugUnique(
+	ctx context.Context,
+	slug string,
+	currentID string,
+) error {
+
+	tag, err := s.tagRepo.FindBySlug(
+		ctx,
+		slug,
+	)
+
+	if errors.Is(
+		err,
+		gorm.ErrRecordNotFound,
+	) {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if tag.ID == currentID {
+		return nil
+	}
+
+	return appErrors.New(
+		appErrors.ErrInvalidParams,
+		http.StatusBadRequest,
+		"tag slug already exists",
+	)
+}
 
 // Update 更新 Tag。
 func (s *tagService) Update(
@@ -259,18 +333,30 @@ func (s *tagService) Update(
 		)
 	}
 
-	// -----------------------------------------------------
-	// 3. 修改字段
-	// -----------------------------------------------------
+	// --------------------------------------------------
+	// 3. 唯一性检查
+	// --------------------------------------------------
+
+	if err := s.validateNameUnique(ctx, name, id); err != nil {
+		return nil, err
+	}
+
+	if err := s.validateSlugUnique(ctx, slug, id); err != nil {
+		return nil, err
+	}
+
+	// --------------------------------------------------
+	// 4. 修改模型
+	// --------------------------------------------------
 
 	tag.Name = name
 	tag.Slug = slug
 	tag.Description = description
 	tag.Status = status
 
-	// -----------------------------------------------------
-	// 4. 保存
-	// -----------------------------------------------------
+	// --------------------------------------------------
+	// 5. 保存
+	// --------------------------------------------------
 
 	if err := s.tagRepo.Update(ctx, tag); err != nil {
 		return nil, err
@@ -370,4 +456,21 @@ func (s *tagService) FindByIDs(
 // isRecordNotFound 判断 GORM 是否返回“记录不存在”。
 func isRecordNotFound(err error) bool {
 	return errors.Is(err, gorm.ErrRecordNotFound)
+}
+
+func (s *tagService) ListPage(
+	ctx context.Context,
+	query repository.TagListQuery,
+) ([]*model.Tag, int64, error) {
+
+	list, total, err := s.tagRepo.FindPage(
+		ctx,
+		query,
+	)
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return list, total, nil
 }

@@ -10,6 +10,7 @@ import (
 	"leslie-blog-server/internal/modules/category/repository"
 	"leslie-blog-server/internal/modules/category/service"
 	"leslie-blog-server/internal/pkg/pagination"
+	"leslie-blog-server/internal/pkg/utils"
 	"leslie-blog-server/internal/response"
 )
 
@@ -57,7 +58,7 @@ func (h *PublicCategoryHandler) List(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	statusValue := c.Query("status")
-	status, err := ParseStatus(statusValue)
+	status, err := utils.ParseStatus(statusValue)
 	if err != nil {
 		response.Error(
 			c,

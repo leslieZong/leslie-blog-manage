@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +11,7 @@ import (
 	"leslie-blog-server/internal/modules/category/repository"
 	"leslie-blog-server/internal/modules/category/service"
 	"leslie-blog-server/internal/pkg/pagination"
+	"leslie-blog-server/internal/pkg/utils"
 	"leslie-blog-server/internal/response"
 )
 
@@ -109,36 +109,6 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 
 	response.Success(c, result)
 }
-func ParseStatus(statusValue string) (*int8, error) {
-	if statusValue != "" {
-		value, err := strconv.ParseInt(
-			statusValue,
-			10,
-			8,
-		)
-
-		if err != nil {
-			return nil, appErrors.New(
-				http.StatusBadRequest,
-				appErrors.ErrInvalidParams,
-				"invalid status",
-			)
-
-		}
-
-		statusInt := int8(value)
-
-		if statusInt != 0 && statusInt != 1 {
-			return nil, appErrors.New(
-				http.StatusBadRequest,
-				appErrors.ErrInvalidParams,
-				"invalid status",
-			)
-		}
-		return &statusInt, nil
-	}
-	return nil, nil
-}
 
 // List 获取分类列表。
 //
@@ -147,7 +117,7 @@ func (h *CategoryHandler) List(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	statusValue := c.Query("status")
-	status, err := ParseStatus(statusValue)
+	status, err := utils.ParseStatus(statusValue)
 	if err != nil {
 		response.Error(
 			c,

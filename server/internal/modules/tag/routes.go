@@ -51,7 +51,7 @@ func RegisterRoutes(
 			enforcer,
 			permission.TagRead,
 		),
-		tagHandler.List,
+		tagHandler.ListPage,
 	)
 
 	// -----------------------------------------------------
