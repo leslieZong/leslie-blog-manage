@@ -9,6 +9,7 @@ import (
 	"leslie-blog-server/internal/modules/post/repository"
 	tagService "leslie-blog-server/internal/modules/tag/service"
 	"leslie-blog-server/internal/pkg/auth"
+	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/database"
 	"leslie-blog-server/internal/pkg/ulid"
 	"net/http"
@@ -134,6 +135,7 @@ type postService struct {
 	categoryRepo       categoryRepository.CategoryRepository
 	tagService         tagService.TagService
 	transactionManager *database.TransactionManager
+	cache              cache.Cache
 }
 
 func NewPostService(
@@ -142,6 +144,7 @@ func NewPostService(
 	categoryRepo categoryRepository.CategoryRepository,
 	tagService tagService.TagService,
 	transactionManager *database.TransactionManager,
+	cache cache.Cache,
 ) PostService {
 
 	return &postService{
@@ -150,6 +153,7 @@ func NewPostService(
 		categoryRepo:       categoryRepo,
 		tagService:         tagService,
 		transactionManager: transactionManager,
+		cache:              cache,
 	}
 }
 
@@ -361,6 +365,20 @@ func (s *postService) Create(
 	post, err = s.repo.FindByID(ctx, post.ID)
 	if err != nil {
 		return nil, err
+	}
+
+	// 5. 删除首页缓存
+	//
+	// Redis 失败不影响已经成功的数据库操作。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+
+		// 这里应该记录日志。
+		//
+		// 暂时没有引入 Logger 的情况下，
+		// 可以先保留这个位置。
 	}
 
 	return post, nil
@@ -798,6 +816,13 @@ func (s *postService) Update(
 	if err != nil {
 		return nil, err
 	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
+	}
 	// 刷新文章，确保关联的 Tag 刷新。
 	post, err = s.repo.FindByID(ctx, id)
 	if err != nil {
@@ -897,6 +922,13 @@ func (s *postService) Publish(
 	if err := s.repo.Update(ctx, post); err != nil {
 		return nil, err
 	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
+	}
 
 	return post, nil
 }
@@ -958,6 +990,13 @@ func (s *postService) Archive(
 	); err != nil {
 		return nil, err
 	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
+	}
 
 	return post, nil
 }
@@ -991,9 +1030,19 @@ func (s *postService) Delete(
 			"you do not have permission to delete this post",
 		)
 	}
+	err = s.repo.Delete(ctx, id)
+	if err != nil {
+		return err
+	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
+	}
 
-	// 执行软删除。
-	return s.repo.Delete(ctx, id)
+	return nil
 }
 
 // IncrementViewCount 增加文章阅读量。

@@ -10,6 +10,7 @@ import (
 	"leslie-blog-server/internal/modules/techstack/dto"
 	"leslie-blog-server/internal/modules/techstack/model"
 	"leslie-blog-server/internal/modules/techstack/repository"
+	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/ulid"
 
 	"gorm.io/gorm"
@@ -61,15 +62,18 @@ type TechStackService interface {
 }
 
 type techStackService struct {
-	repo repository.TechStackRepository
+	repo  repository.TechStackRepository
+	cache cache.Cache
 }
 
 func NewTechStackService(
 	repo repository.TechStackRepository,
+	cache cache.Cache,
 ) TechStackService {
 
 	return &techStackService{
-		repo: repo,
+		repo:  repo,
+		cache: cache,
 	}
 }
 
@@ -165,6 +169,13 @@ func (s *techStackService) Create(
 	); err != nil {
 
 		return nil, err
+	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
 	}
 
 	return techStack, nil
@@ -308,11 +319,22 @@ func (s *techStackService) Delete(
 		)
 	}
 
-	// 没有任何 Project 使用，可以软删除。
-	return s.repo.Delete(
+	err = s.repo.Delete(
 		ctx,
 		techStack.ID,
 	)
+	if err != nil {
+		return err
+	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
+	}
+
+	return nil
 }
 
 func (s *techStackService) Update(
@@ -425,6 +447,13 @@ func (s *techStackService) Update(
 		techStack,
 	); err != nil {
 		return nil, err
+	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
 	}
 
 	return techStack, nil

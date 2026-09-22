@@ -10,6 +10,7 @@ import (
 	"leslie-blog-server/internal/modules/category/model"
 	"leslie-blog-server/internal/modules/category/repository"
 
+	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/ulid"
 
 	"gorm.io/gorm"
@@ -77,7 +78,8 @@ type CategoryService interface {
 //
 // CategoryService 的具体实现。
 type categoryService struct {
-	repo repository.CategoryRepository
+	repo  repository.CategoryRepository
+	cache cache.Cache
 }
 
 // NewCategoryService
@@ -85,9 +87,11 @@ type categoryService struct {
 // 创建 Category Service。
 func NewCategoryService(
 	repo repository.CategoryRepository,
+	cache cache.Cache,
 ) CategoryService {
 	return &categoryService{
-		repo: repo,
+		repo:  repo,
+		cache: cache,
 	}
 }
 
@@ -205,6 +209,13 @@ func (s *categoryService) Create(
 			"failed to create category",
 			err,
 		)
+	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
 	}
 
 	return category, nil
@@ -441,6 +452,13 @@ func (s *categoryService) Update(
 			err,
 		)
 	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
+	}
 
 	return category, nil
 }
@@ -530,6 +548,13 @@ func (s *categoryService) Delete(
 			"failed to delete category",
 			err,
 		)
+	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
 	}
 
 	return nil

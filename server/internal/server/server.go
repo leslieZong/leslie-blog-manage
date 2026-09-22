@@ -34,11 +34,13 @@ import (
 	userHandler "leslie-blog-server/internal/modules/user/handler"
 	userRepository "leslie-blog-server/internal/modules/user/repository"
 	userService "leslie-blog-server/internal/modules/user/service"
+	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/casbin"
 	pkgDatabase "leslie-blog-server/internal/pkg/database"
 	"leslie-blog-server/internal/router"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -69,6 +71,18 @@ func New(cfg *config.Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// 创建 Redis 连接。
+	redisClient := redis.NewClient(
+		&redis.Options{
+			Addr:     cfg.Redis.Addr,
+			Password: cfg.Redis.Password,
+			DB:       cfg.Redis.DB,
+		},
+	)
+	cacheStore := cache.NewRedisCache(
+		redisClient,
+	)
 
 	// ==================================================
 	// 2. 创建 Gin Engine
@@ -128,6 +142,7 @@ func New(cfg *config.Config) (*Server, error) {
 		categoryRepo,
 		tagSvc,
 		pkgDatabase.NewTransactionManager(db),
+		cacheStore,
 	)
 	authSvc := authService.NewAuthService(
 		userRepo,
@@ -137,20 +152,24 @@ func New(cfg *config.Config) (*Server, error) {
 	)
 	categorySvc := categoryService.NewCategoryService(
 		categoryRepo,
+		cacheStore,
 	)
 	projectSvc := projectService.NewProjectService(
 		projectRepo,
 		techStackRepo,
 		pkgDatabase.NewTransactionManager(db),
+		cacheStore,
 	)
 	techstackSvc := techstackService.NewTechStackService(
 		techStackRepo,
+		cacheStore,
 	)
 	homeSvc := homeService.NewHomeService(
 		postSvc,
 		categorySvc,
 		projectSvc,
 		techstackSvc,
+		cacheStore,
 	)
 
 	// ==================================================

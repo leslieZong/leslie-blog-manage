@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"time"
 
 	categorydto "leslie-blog-server/internal/modules/category/dto"
 	categorymodel "leslie-blog-server/internal/modules/category/model"
@@ -18,6 +20,7 @@ import (
 	techstackdto "leslie-blog-server/internal/modules/techstack/dto"
 	techstackmodel "leslie-blog-server/internal/modules/techstack/model"
 	techstackservice "leslie-blog-server/internal/modules/techstack/service"
+	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/pagination"
 
 	"golang.org/x/sync/errgroup"
@@ -39,6 +42,7 @@ type homeService struct {
 	categoryService  categoryservice.CategoryService
 	projectService   projectservice.ProjectService
 	techStackService techstackservice.TechStackService
+	cache            cache.Cache
 }
 
 func NewHomeService(
@@ -46,6 +50,7 @@ func NewHomeService(
 	categoryService categoryservice.CategoryService,
 	projectService projectservice.ProjectService,
 	techStackService techstackservice.TechStackService,
+	cache cache.Cache,
 ) HomeService {
 
 	return &homeService{
@@ -56,10 +61,68 @@ func NewHomeService(
 		projectService: projectService,
 
 		techStackService: techStackService,
+		cache:            cache,
 	}
 }
 
 func (s *homeService) GetHome(
+	ctx context.Context,
+) (*dto.HomeResponse, error) {
+
+	// -----------------------------------------
+	// 1. 尝试读取缓存
+	// -----------------------------------------
+
+	cached, err := s.cache.Get(
+		ctx,
+		cache.KeyHome,
+	)
+
+	if err == nil {
+
+		var result dto.HomeResponse
+
+		if err := json.Unmarshal(
+			[]byte(cached),
+			&result,
+		); err == nil {
+
+			return &result, nil
+		}
+
+		// JSON 解析失败时，
+		// 不直接让整个 Home API 失败。
+		//
+		// 因为缓存本身只是性能优化。
+	}
+
+	// 2. 缓存不存在 / 缓存异常
+	//    从数据库重新加载。
+	result, err := s.loadHome(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. 写入缓存
+	data, err := json.Marshal(result)
+
+	if err == nil {
+
+		// 缓存写入失败不能影响主流程。
+		_ = s.cache.Set(
+			ctx,
+			cache.KeyHome,
+			string(data),
+			5*time.Minute,
+		)
+	}
+
+	// 4. 返回数据库结果
+	return result, nil
+}
+
+func (s *homeService) loadHome(
 	ctx context.Context,
 ) (*dto.HomeResponse, error) {
 

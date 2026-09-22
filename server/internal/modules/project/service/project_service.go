@@ -11,6 +11,7 @@ import (
 	"leslie-blog-server/internal/modules/project/model"
 	"leslie-blog-server/internal/modules/project/repository"
 	techstackRepository "leslie-blog-server/internal/modules/techstack/repository"
+	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/database"
 	"leslie-blog-server/internal/pkg/ulid"
 
@@ -79,18 +80,21 @@ type projectService struct {
 	techstackRepo techstackRepository.TechStackRepository
 
 	transactionManager *database.TransactionManager
+	cache              cache.Cache
 }
 
 func NewProjectService(
 	repo repository.ProjectRepository,
 	techstackRepo techstackRepository.TechStackRepository,
 	transactionManager *database.TransactionManager,
+	cache cache.Cache,
 ) ProjectService {
 
 	return &projectService{
 		repo:               repo,
 		techstackRepo:      techstackRepo,
 		transactionManager: transactionManager,
+		cache:              cache,
 	}
 }
 
@@ -289,6 +293,13 @@ func (s *projectService) Create(
 	)
 	if err != nil {
 		return nil, err
+	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
 	}
 
 	return project, nil
@@ -516,6 +527,13 @@ func (s *projectService) Update(
 	if err != nil {
 		return nil, err
 	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
+	}
 	project, err = s.repo.FindByID(
 		ctx,
 		project.ID,
@@ -626,12 +644,22 @@ func (s *projectService) Delete(
 	if err != nil {
 		return err
 	}
-
-	// 执行 Soft Delete。
-	return s.repo.Delete(
+	err = s.repo.Delete(
 		ctx,
 		id,
 	)
+	if err != nil {
+		return err
+	}
+	// 删除 Home Cache。
+	if err := cache.InvalidateHome(
+		ctx,
+		s.cache,
+	); err != nil {
+		// 记录日志
+	}
+
+	return nil
 }
 
 func (s *projectService) ListPublic(
