@@ -1,6 +1,9 @@
 package dto
 
-import "leslie-blog-server/internal/modules/project/model"
+import (
+	"leslie-blog-server/internal/modules/project/model"
+	techstackdto "leslie-blog-server/internal/modules/techstack/dto"
+)
 
 type PublicProjectResponse struct {
 	ID string `json:"id"`
@@ -17,7 +20,8 @@ type PublicProjectResponse struct {
 
 	DemoURL *string `json:"demoUrl"`
 
-	Featured bool `json:"featured"`
+	Featured   bool                                    `json:"featured"`
+	TechStacks []*techstackdto.PublicTechStackResponse `json:"techStacks"`
 }
 
 func FromPublicModel(
@@ -37,6 +41,7 @@ func FromPublicModel(
 		GitHubURL:   project.GitHubURL,
 		DemoURL:     project.DemoURL,
 		Featured:    project.Featured,
+		TechStacks:  techstackdto.FromPublicModelList(project.TechStacks),
 	}
 }
 

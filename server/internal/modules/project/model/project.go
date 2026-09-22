@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	techstackmodel "leslie-blog-server/internal/modules/techstack/model"
+)
 
 // Project 表示 Blog 中的一个项目。
 //
@@ -54,6 +58,8 @@ type Project struct {
 	UpdatedAt time.Time `gorm:"column:updated_at"`
 
 	DeletedAt *time.Time `gorm:"column:deleted_at;index"`
+
+	TechStacks []*techstackmodel.TechStack `gorm:"many2many:project_tech_stacks;foreignKey:ID;joinForeignKey:ProjectID;References:ID;joinReferences:TechStackID"`
 }
 
 // TableName 指定数据库表名称。

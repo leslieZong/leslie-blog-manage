@@ -10,6 +10,8 @@ import (
 	"leslie-blog-server/internal/modules/project/dto"
 	"leslie-blog-server/internal/modules/project/model"
 	"leslie-blog-server/internal/modules/project/repository"
+	techstackRepository "leslie-blog-server/internal/modules/techstack/repository"
+	"leslie-blog-server/internal/pkg/database"
 	"leslie-blog-server/internal/pkg/ulid"
 
 	"gorm.io/gorm"
@@ -73,16 +75,90 @@ type ProjectService interface {
 }
 
 type projectService struct {
-	repo repository.ProjectRepository
+	repo          repository.ProjectRepository
+	techstackRepo techstackRepository.TechStackRepository
+
+	transactionManager *database.TransactionManager
 }
 
 func NewProjectService(
 	repo repository.ProjectRepository,
+	techstackRepo techstackRepository.TechStackRepository,
+	transactionManager *database.TransactionManager,
 ) ProjectService {
 
 	return &projectService{
-		repo: repo,
+		repo:               repo,
+		techstackRepo:      techstackRepo,
+		transactionManager: transactionManager,
 	}
+}
+
+func normalizeIDs(ids []string) []string {
+
+	result := make(
+		[]string,
+		0,
+		len(ids),
+	)
+
+	seen := make(
+		map[string]struct{},
+		len(ids),
+	)
+
+	for _, id := range ids {
+
+		id = strings.TrimSpace(id)
+
+		if id == "" {
+			continue
+		}
+
+		if _, exists := seen[id]; exists {
+			continue
+		}
+
+		seen[id] = struct{}{}
+
+		result = append(
+			result,
+			id,
+		)
+	}
+
+	return result
+}
+
+func (s *projectService) validateTechStacks(
+	ctx context.Context,
+	ids []string,
+) error {
+
+	ids = normalizeIDs(ids)
+
+	if len(ids) == 0 {
+		return nil
+	}
+
+	techStacks, err := s.techstackRepo.FindByIDs(
+		ctx,
+		ids,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if len(techStacks) != len(ids) {
+		return appErrors.New(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"one or more tech stacks are invalid",
+		)
+	}
+
+	return nil
 }
 
 func (s *projectService) Create(
@@ -111,6 +187,19 @@ func (s *projectService) Create(
 			http.StatusBadRequest,
 			"project slug is required",
 		)
+	}
+
+	// 先处理 TechStack ID。
+	techStackIDs := normalizeIDs(
+		req.TechStackIDs,
+	)
+
+	// 验证 TechStack 是否全部存在并且启用。
+	if err := s.validateTechStacks(
+		ctx,
+		techStackIDs,
+	); err != nil {
+		return nil, err
 	}
 
 	// ---------------------------------------------
@@ -160,11 +249,45 @@ func (s *projectService) Create(
 	// ---------------------------------------------
 	// 5. 持久化
 	// ---------------------------------------------
+	// 5.1 保存 Project
+	// ---------------------------------------------
 
-	if err := s.repo.Create(
+	err := s.transactionManager.WithTransaction(
 		ctx,
-		project,
-	); err != nil {
+		func(tx *gorm.DB) error {
+			transactionProjectRepo :=
+				repository.NewProjectRepository(tx)
+
+			transactionRelationRepo :=
+				repository.NewProjectTechStackRepository(tx)
+
+			if err := transactionProjectRepo.Create(
+				ctx,
+				project,
+			); err != nil {
+				return err
+			}
+
+			if err := transactionRelationRepo.ReplaceTechStacks(
+				ctx,
+				project.ID,
+				req.TechStackIDs,
+			); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	project, err = s.repo.FindByID(
+		ctx,
+		project.ID,
+	)
+	if err != nil {
 		return nil, err
 	}
 
@@ -297,6 +420,17 @@ func (s *projectService) Update(
 		)
 	}
 
+	techStackIDs := normalizeIDs(
+		req.TechStackIDs,
+	)
+
+	if err := s.validateTechStacks(
+		ctx,
+		techStackIDs,
+	); err != nil {
+		return nil, err
+	}
+
 	// ---------------------------------------------
 	// 3. Status 校验
 	// ---------------------------------------------
@@ -345,13 +479,48 @@ func (s *projectService) Update(
 	project.Sort = req.Sort
 
 	// ---------------------------------------------
-	// 6. 保存
+	// 6. 开始事务
 	// ---------------------------------------------
 
-	if err := s.repo.Update(
+	err = s.transactionManager.WithTransaction(
 		ctx,
-		project,
-	); err != nil {
+		func(tx *gorm.DB) error {
+
+			projectRepo :=
+				repository.NewProjectRepository(tx)
+
+			projectTechStackRepo :=
+				repository.NewProjectTechStackRepository(tx)
+
+			// 更新 Project。
+			if err := projectRepo.Update(
+				ctx,
+				project,
+			); err != nil {
+				return err
+			}
+
+			// 替换 TechStack。
+			if err := projectTechStackRepo.ReplaceTechStacks(
+				ctx,
+				project.ID,
+				techStackIDs,
+			); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	project, err = s.repo.FindByID(
+		ctx,
+		project.ID,
+	)
+	if err != nil {
 		return nil, err
 	}
 

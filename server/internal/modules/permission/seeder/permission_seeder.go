@@ -231,6 +231,34 @@ var systemPermissions = []SeedPermission{
 		Action:      "delete",
 		Description: "删除项目",
 	},
+	{
+		Name:        "techstack:read",
+		DisplayName: "查看技术栈",
+		Resource:    "techstack",
+		Action:      "read",
+		Description: "查看技术栈",
+	},
+	{
+		Name:        "techstack:create",
+		DisplayName: "创建技术栈",
+		Resource:    "techstack",
+		Action:      "create",
+		Description: "创建技术栈",
+	},
+	{
+		Name:        "techstack:update",
+		DisplayName: "修改技术栈",
+		Resource:    "techstack",
+		Action:      "update",
+		Description: "修改技术栈",
+	},
+	{
+		Name:        "techstack:delete",
+		DisplayName: "删除技术栈",
+		Resource:    "techstack",
+		Action:      "delete",
+		Description: "删除技术栈",
+	},
 }
 
 // Seed 初始化系统 Permission。

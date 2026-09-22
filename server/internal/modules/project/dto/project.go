@@ -3,6 +3,8 @@ package dto
 import (
 	"leslie-blog-server/internal/modules/project/model"
 	"time"
+
+	techstackdto "leslie-blog-server/internal/modules/techstack/dto"
 )
 
 type CreateProjectRequest struct {
@@ -21,6 +23,18 @@ type CreateProjectRequest struct {
 	Featured bool `json:"featured"`
 
 	Sort int `json:"sort"`
+
+	// TechStack IDs。
+	//
+	// 前端只需要提交：
+	//
+	// [
+	//   "01xxx",
+	//   "01yyy"
+	// ]
+	//
+	// 后端负责验证这些 TechStack 是否存在。
+	TechStackIDs []string `json:"techStackIds"`
 }
 
 type UpdateProjectRequest struct {
@@ -40,7 +54,8 @@ type UpdateProjectRequest struct {
 
 	Status int8 `json:"status"`
 
-	Sort int `json:"sort"`
+	Sort         int      `json:"sort"`
+	TechStackIDs []string `json:"techStackIds"`
 }
 
 type ProjectResponse struct {
@@ -66,7 +81,8 @@ type ProjectResponse struct {
 
 	CreatedAt string `json:"createdAt"`
 
-	UpdatedAt string `json:"updatedAt"`
+	UpdatedAt  string                            `json:"updatedAt"`
+	TechStacks []*techstackdto.TechStackResponse `json:"techStacks"`
 }
 
 func FromModel(
@@ -90,6 +106,7 @@ func FromModel(
 		Sort:        project.Sort,
 		CreatedAt:   project.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   project.UpdatedAt.Format(time.RFC3339),
+		TechStacks:  techstackdto.FromModelList(project.TechStacks),
 	}
 }
 

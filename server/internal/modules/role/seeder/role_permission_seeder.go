@@ -53,6 +53,11 @@ var defaultRolePermissions = map[string][]string{
 		"project:create",
 		"project:update",
 		"project:delete",
+
+		"techstack:read",
+		"techstack:create",
+		"techstack:update",
+		"techstack:delete",
 	},
 
 	// editor 负责内容管理。
@@ -68,6 +73,7 @@ var defaultRolePermissions = map[string][]string{
 		"tag:read",
 
 		"project:read",
+		"techstack:read",
 	},
 
 	// viewer 只拥有查看权限。
@@ -76,6 +82,7 @@ var defaultRolePermissions = map[string][]string{
 		"category:read",
 		"tag:read",
 		"project:read",
+		"techstack:read",
 	},
 }
 

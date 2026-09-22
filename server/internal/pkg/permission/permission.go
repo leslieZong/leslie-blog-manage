@@ -39,4 +39,10 @@ const (
 	ProjectCreate = "project:create"
 	ProjectUpdate = "project:update"
 	ProjectDelete = "project:delete"
+
+	// TechStack 权限
+	TechStackRead   = "techstack:read"
+	TechStackCreate = "techstack:create"
+	TechStackUpdate = "techstack:update"
+	TechStackDelete = "techstack:delete"
 )

@@ -26,6 +26,9 @@ import (
 	tagHandler "leslie-blog-server/internal/modules/tag/handler"
 	tagRepository "leslie-blog-server/internal/modules/tag/repository"
 	tagService "leslie-blog-server/internal/modules/tag/service"
+	techstackHandler "leslie-blog-server/internal/modules/techstack/handler"
+	techstackRepository "leslie-blog-server/internal/modules/techstack/repository"
+	techstackService "leslie-blog-server/internal/modules/techstack/service"
 	userHandler "leslie-blog-server/internal/modules/user/handler"
 	userRepository "leslie-blog-server/internal/modules/user/repository"
 	userService "leslie-blog-server/internal/modules/user/service"
@@ -98,6 +101,7 @@ func New(cfg *config.Config) (*Server, error) {
 	tagRepo := tagRepository.NewTagRepository(db)
 	postTagRepo := postRepository.NewPostTagRepository(db)
 	projectRepo := projectRepository.NewProjectRepository(db)
+	techStackRepo := techstackRepository.NewTechStackRepository(db)
 
 	// ==================================================
 	// 5. 创建模块 Service
@@ -134,6 +138,11 @@ func New(cfg *config.Config) (*Server, error) {
 	)
 	projectSvc := projectService.NewProjectService(
 		projectRepo,
+		techStackRepo,
+		pkgDatabase.NewTransactionManager(db),
+	)
+	techstackSvc := techstackService.NewTechStackService(
+		techStackRepo,
 	)
 
 	// ==================================================
@@ -163,6 +172,9 @@ func New(cfg *config.Config) (*Server, error) {
 	)
 	projectPublicHandler := projectHandler.NewProjectPublicHandler(
 		projectSvc,
+	)
+	techstackH := techstackHandler.NewTechStackHandler(
+		techstackSvc,
 	)
 
 	// ==================================================
@@ -202,6 +214,7 @@ func New(cfg *config.Config) (*Server, error) {
 		tagH,
 		projectH,
 		projectPublicHandler,
+		techstackH,
 		jwtMiddleware,
 		enforcer,
 	)

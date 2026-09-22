@@ -46,6 +46,18 @@ func seedCasbin(
 		{"tag", "update"},
 		{"tag", "delete"},
 
+		// Project
+		{"project", "read"},
+		{"project", "create"},
+		{"project", "update"},
+		{"project", "delete"},
+
+		// TechStack
+		{"techstack", "read"},
+		{"techstack", "create"},
+		{"techstack", "update"},
+		{"techstack", "delete"},
+
 		// Dashboard
 		{"dashboard", "read"},
 	}

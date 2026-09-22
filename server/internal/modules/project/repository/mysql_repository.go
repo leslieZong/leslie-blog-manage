@@ -30,6 +30,7 @@ func (r *projectRepository) FindByID(
 
 	err := r.db.
 		WithContext(ctx).
+		Preload("TechStacks").
 		Where("id = ?", id).
 		First(&project).
 		Error
@@ -50,6 +51,7 @@ func (r *projectRepository) FindBySlug(
 
 	err := r.db.
 		WithContext(ctx).
+		Preload("TechStacks").
 		Where("slug = ?", slug).
 		First(&project).
 		Error
@@ -70,6 +72,7 @@ func (r *projectRepository) FindByName(
 
 	err := r.db.
 		WithContext(ctx).
+		Preload("TechStacks").
 		Where("name = ?", name).
 		First(&project).
 		Error
@@ -94,7 +97,8 @@ func (r *projectRepository) FindPage(
 	// 基础查询。
 	db := r.db.
 		WithContext(ctx).
-		Model(&model.Project{})
+		Model(&model.Project{}).
+		Preload("TechStacks")
 
 	// --------------------------------------------------
 	// Keyword
