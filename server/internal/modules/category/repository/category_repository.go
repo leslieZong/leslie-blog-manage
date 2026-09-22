@@ -37,6 +37,16 @@ type CategoryRepository interface {
 		ctx context.Context,
 	) ([]*model.Category, error)
 
+	// 查询全部已发布分类。
+	FindPublicAll(
+		ctx context.Context,
+	) ([]*model.Category, error)
+	// 根据 slug 查询分类。
+	FindPublicBySlug(
+		ctx context.Context,
+		slug string,
+	) (*model.Category, error)
+
 	FindPage(
 		ctx context.Context,
 		query CategoryListQuery,

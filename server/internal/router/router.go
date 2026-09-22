@@ -5,6 +5,8 @@ import (
 	authHandler "leslie-blog-server/internal/modules/auth/handler"
 	"leslie-blog-server/internal/modules/category"
 	categoryHandler "leslie-blog-server/internal/modules/category/handler"
+	"leslie-blog-server/internal/modules/home"
+	homeHandler "leslie-blog-server/internal/modules/home/handler"
 	"leslie-blog-server/internal/modules/post"
 	postHandler "leslie-blog-server/internal/modules/post/handler"
 	"leslie-blog-server/internal/modules/project"
@@ -38,6 +40,7 @@ type Router struct {
 	projectHandler        *projectHandler.ProjectHandler
 	projectPublicHandler  *projectHandler.ProjectPublicHandler
 	techstackHandler      *techstackHandler.TechStackHandler
+	homeHandler           *homeHandler.HomeHandler
 
 	// jwtMiddleware 是 JWT 认证中间件。
 	//
@@ -61,6 +64,7 @@ func New(
 	projectHandler *projectHandler.ProjectHandler,
 	projectPublicHandler *projectHandler.ProjectPublicHandler,
 	techstackHandler *techstackHandler.TechStackHandler,
+	homeHandler *homeHandler.HomeHandler,
 	jwtMiddleware gin.HandlerFunc,
 	enforcer *casbin.Enforcer,
 ) *Router {
@@ -78,6 +82,7 @@ func New(
 		projectHandler:        projectHandler,
 		projectPublicHandler:  projectPublicHandler,
 		techstackHandler:      techstackHandler,
+		homeHandler:           homeHandler,
 		jwtMiddleware:         jwtMiddleware,
 		enforcer:              enforcer,
 	}
@@ -112,6 +117,10 @@ func (r *Router) Register() {
 	techstack.RegisterPublicRoutes(
 		v1,
 		r.techstackHandler,
+	)
+	home.RegisterPublicRoutes(
+		v1,
+		r.homeHandler,
 	)
 
 	// 当前还没有公共 API。

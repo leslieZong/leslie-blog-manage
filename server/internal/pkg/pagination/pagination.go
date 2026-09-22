@@ -87,6 +87,14 @@ func Parse(c *gin.Context) Params {
 	}
 }
 
+// NewParams 创建分页参数。
+func NewParams(page int, pageSize int) Params {
+	return Params{
+		Page:     page,
+		PageSize: pageSize,
+	}
+}
+
 // Offset 计算 SQL OFFSET。
 //
 // 第 1 页：

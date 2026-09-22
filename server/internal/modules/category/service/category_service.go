@@ -61,6 +61,16 @@ type CategoryService interface {
 		ctx context.Context,
 		query repository.CategoryListQuery,
 	) ([]*model.Category, int64, error)
+
+	// Public
+	ListPublic(
+		ctx context.Context,
+	) ([]*model.Category, error)
+
+	GetPublicBySlug(
+		ctx context.Context,
+		slug string,
+	) (*model.Category, error)
 }
 
 // categoryService
@@ -540,4 +550,36 @@ func (s *categoryService) ListPage(
 	}
 
 	return list, total, nil
+}
+
+func (s *categoryService) ListPublic(
+	ctx context.Context,
+) ([]*model.Category, error) {
+
+	categories, err := s.repo.FindPublicAll(
+		ctx,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return categories, nil
+}
+
+func (s *categoryService) GetPublicBySlug(
+	ctx context.Context,
+	slug string,
+) (*model.Category, error) {
+
+	category, err := s.repo.FindPublicBySlug(
+		ctx,
+		slug,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return category, nil
 }

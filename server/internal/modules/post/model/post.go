@@ -116,6 +116,8 @@ type Post struct {
 	//
 	// NULL 表示没有被删除。
 	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index"`
+
+	Featured bool `gorm:"column:featured;not null;default:false"`
 }
 
 // TableName 指定 Model 对应的数据库表。

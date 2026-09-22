@@ -85,4 +85,10 @@ type PostRepository interface {
 		ctx context.Context,
 		id string,
 	) error
+
+	// Public Featured
+	FindFeaturedPage(
+		ctx context.Context,
+		query PostListQuery,
+	) ([]*model.Post, int64, error)
 }

@@ -13,6 +13,8 @@ import (
 	categoryHandler "leslie-blog-server/internal/modules/category/handler"
 	categoryRepository "leslie-blog-server/internal/modules/category/repository"
 	categoryService "leslie-blog-server/internal/modules/category/service"
+	homeHandler "leslie-blog-server/internal/modules/home/handler"
+	homeService "leslie-blog-server/internal/modules/home/service"
 	permissionRepository "leslie-blog-server/internal/modules/permission/repository"
 	postHandler "leslie-blog-server/internal/modules/post/handler"
 	postRepository "leslie-blog-server/internal/modules/post/repository"
@@ -144,6 +146,12 @@ func New(cfg *config.Config) (*Server, error) {
 	techstackSvc := techstackService.NewTechStackService(
 		techStackRepo,
 	)
+	homeSvc := homeService.NewHomeService(
+		postSvc,
+		categorySvc,
+		projectSvc,
+		techstackSvc,
+	)
 
 	// ==================================================
 	// 6. 创建模块 Handler
@@ -176,6 +184,7 @@ func New(cfg *config.Config) (*Server, error) {
 	techstackH := techstackHandler.NewTechStackHandler(
 		techstackSvc,
 	)
+	homeH := homeHandler.NewHomeHandler(homeSvc)
 
 	// ==================================================
 	// 9. 创建 JWT Middleware
@@ -215,6 +224,7 @@ func New(cfg *config.Config) (*Server, error) {
 		projectH,
 		projectPublicHandler,
 		techstackH,
+		homeH,
 		jwtMiddleware,
 		enforcer,
 	)

@@ -255,3 +255,51 @@ func (r *gormCategoryRepository) FindPage(
 
 	return categories, total, nil
 }
+
+func (r *gormCategoryRepository) FindPublicAll(
+	ctx context.Context,
+) ([]*model.Category, error) {
+
+	var categories []*model.Category
+
+	err := r.db.
+		WithContext(ctx).
+		Where("deleted_at IS NULL").
+		Where("status = ?", 1).
+		Order("sort ASC").
+		Order("created_at ASC").
+		Find(&categories).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return categories, nil
+
+}
+
+// FindPublicBySlug
+//
+// 根据 slug 查询分类。
+func (r *gormCategoryRepository) FindPublicBySlug(
+	ctx context.Context,
+	slug string,
+) (*model.Category, error) {
+
+	var category model.Category
+
+	err := r.db.
+		WithContext(ctx).
+		Where("deleted_at IS NULL").
+		Where("status = ?", 1).
+		Where("slug = ?", slug).
+		First(&category).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &category, nil
+}

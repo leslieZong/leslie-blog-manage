@@ -32,3 +32,18 @@ func FromSimpleModel(
 		Slug: category.Slug,
 	}
 }
+
+func FromSimpleModelList(
+	categories []*model.Category,
+) []*SimpleCategoryResponse {
+	simpleCategories := make([]*SimpleCategoryResponse, 0, len(categories))
+	for _, category := range categories {
+		if category == nil {
+			continue
+		}
+
+		simpleCategories = append(simpleCategories, FromSimpleModel(category))
+	}
+
+	return simpleCategories
+}

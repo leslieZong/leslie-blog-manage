@@ -354,3 +354,63 @@ func (r *gormPostRepository) FindPublishedPage(
 
 	return posts, total, nil
 }
+
+func (r *gormPostRepository) FindFeaturedPage(
+	ctx context.Context,
+	queryParams PostListQuery,
+) ([]*model.Post, int64, error) {
+
+	query := r.db.
+		WithContext(ctx).
+		Model(&model.Post{}).
+		Preload("Category").
+		Preload("Tags").
+		Where("deleted_at IS NULL").
+		Where(
+			"posts.status = ?",
+			model.PostStatusPublished,
+		).
+		Where(
+			"posts.featured = ?",
+			true,
+		)
+
+	if queryParams.CategoryID != "" {
+		query = query.Where(
+			"posts.category_id = ?",
+			queryParams.CategoryID,
+		)
+	}
+
+	if queryParams.TagID != "" {
+		query = query.Where(`
+            EXISTS (
+                SELECT 1
+                FROM post_tags
+                WHERE post_tags.post_id = posts.id
+                AND post_tags.tag_id = ?
+            )
+        `, queryParams.TagID)
+	}
+
+	var total int64
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var posts []*model.Post
+
+	err := query.
+		Order("posts.published_at DESC").
+		Limit(queryParams.PageSize).
+		Offset(queryParams.Offset()).
+		Find(&posts).
+		Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return posts, total, nil
+}

@@ -114,6 +114,12 @@ type PostService interface {
 		ctx context.Context,
 		id string,
 	) error
+
+	// Public Featured
+	ListFeatured(
+		ctx context.Context,
+		query repository.PostListQuery,
+	) ([]*model.Post, int64, error)
 }
 
 // postService 是 PostService 的具体实现。
@@ -1055,4 +1061,22 @@ func (s *postService) validateCategory(
 	}
 
 	return nil
+}
+
+func (s *postService) ListFeatured(
+	ctx context.Context,
+	query repository.PostListQuery,
+) ([]*model.Post, int64, error) {
+
+	posts, total, err :=
+		s.repo.FindFeaturedPage(
+			ctx,
+			query,
+		)
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return posts, total, err
 }

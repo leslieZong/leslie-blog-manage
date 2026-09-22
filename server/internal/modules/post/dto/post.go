@@ -45,6 +45,9 @@ type CreatePostRequest struct {
 	CategoryID string `json:"categoryId"`
 	// TagIDs 标签 ID 列表。
 	TagIDs []string `json:"tagIds"`
+
+	// Featured 是否为推荐文章。
+	Featured bool `json:"featured"`
 }
 
 // UpdatePostRequest 更新文章请求。
@@ -78,6 +81,9 @@ type UpdatePostRequest struct {
 	CategoryID string `json:"categoryId"`
 	// TagIDs 标签 ID 列表。
 	TagIDs []string `json:"tagIds"`
+
+	// Featured 是否为推荐文章。
+	Featured bool `json:"featured"`
 }
 
 // PostResponse 文章详情响应。
