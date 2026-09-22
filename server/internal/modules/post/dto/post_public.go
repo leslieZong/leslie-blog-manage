@@ -44,7 +44,8 @@ type PublicPostResponse struct {
 	PublishedAt *time.Time `json:"publishedAt"`
 
 	// 阅读数量
-	ViewCount uint64 `json:"viewCount"`
+	ViewCount uint64    `json:"viewCount"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // PublicPostListItem
@@ -72,7 +73,8 @@ type PublicPostListItem struct {
 
 	PublishedAt *time.Time `json:"publishedAt"`
 
-	ViewCount uint64 `json:"viewCount"`
+	ViewCount uint64    `json:"viewCount"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // FromPublicModel
@@ -96,6 +98,7 @@ func FromPublicModel(post *model.Post) *PublicPostResponse {
 		Cover:       post.Cover,
 		PublishedAt: post.PublishedAt,
 		ViewCount:   post.ViewCount,
+		CreatedAt:   post.CreatedAt,
 	}
 }
 
@@ -121,6 +124,7 @@ func FromPublicModelList(posts []*model.Post) []*PublicPostListItem {
 			Cover:       post.Cover,
 			PublishedAt: post.PublishedAt,
 			ViewCount:   post.ViewCount,
+			CreatedAt:   post.CreatedAt,
 		})
 	}
 

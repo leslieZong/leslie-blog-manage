@@ -20,4 +20,7 @@ type PostListQuery struct {
 
 	// 文章状态。
 	Status string
+
+	// 标签 ID。
+	TagID string
 }

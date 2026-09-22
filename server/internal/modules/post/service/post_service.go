@@ -465,6 +465,7 @@ func (s *postService) ListPublished(
 	ctx context.Context,
 	query repository.PostListQuery,
 ) ([]*model.Post, int64, error) {
+	query.Status = string(model.PostStatusPublished)
 	posts, total, err := s.repo.FindPublishedPage(ctx, query)
 
 	if err != nil {

@@ -256,6 +256,16 @@ func (r *gormPostRepository) FindPage(
 	if params.CategoryID != "" {
 		query = query.Where("category_id = ?", params.CategoryID)
 	}
+	if params.TagID != "" {
+		query = query.Where(`
+        EXISTS (
+            SELECT 1
+            FROM post_tags
+            WHERE post_tags.post_id = posts.id
+            AND post_tags.tag_id = ?
+        )
+    `, params.TagID)
+	}
 
 	err := query.
 		Count(&total).
@@ -307,6 +317,8 @@ func (r *gormPostRepository) FindPublishedPage(
 	query := r.db.
 		WithContext(ctx).
 		Model(&model.Post{}).
+		Preload("Category").
+		Preload("Tags").
 		Where("deleted_at IS NULL").
 		Where(
 			"status = ?",
@@ -315,24 +327,20 @@ func (r *gormPostRepository) FindPublishedPage(
 	if params.CategoryID != "" {
 		query = query.Where("category_id = ?", params.CategoryID)
 	}
+
+	if params.TagID != "" {
+		query = query.Where(`
+            EXISTS (
+                SELECT 1
+                FROM post_tags
+                WHERE post_tags.post_id = posts.id
+                AND post_tags.tag_id = ?
+            )
+        `, params.TagID)
+	}
 	// Count
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
-	}
-
-	// 查询当前页
-	query = r.db.
-		WithContext(ctx).
-		Model(&model.Post{}).
-		Preload("Category").
-		Preload("Tags").
-		Where(
-			"status = ?",
-			model.PostStatusPublished,
-		).
-		Where("deleted_at IS NULL")
-	if params.CategoryID != "" {
-		query = query.Where("category_id = ?", params.CategoryID)
 	}
 	if err := query.
 		Order("published_at DESC").

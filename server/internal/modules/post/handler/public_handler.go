@@ -54,10 +54,12 @@ func NewPublicPostHandler(
 func (h *PublicPostHandler) ListPublished(c *gin.Context) {
 
 	ctx := c.Request.Context()
+
 	query := repository.PostListQuery{
 		Params:     pagination.Parse(c),
 		CategoryID: c.Query("categoryId"),
 		Status:     c.Query("status"),
+		TagID:      c.Query("tagId"),
 	}
 
 	posts, total, err := h.service.ListPublished(ctx, query)

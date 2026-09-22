@@ -109,6 +109,10 @@ func (r *Router) Register() {
 		v1,
 		r.projectPublicHandler,
 	)
+	techstack.RegisterPublicRoutes(
+		v1,
+		r.techstackHandler,
+	)
 
 	// 当前还没有公共 API。
 	//
