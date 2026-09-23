@@ -1,6 +1,7 @@
 package router
 
 import (
+	"leslie-blog-server/internal/health"
 	"leslie-blog-server/internal/modules/auth"
 	authHandler "leslie-blog-server/internal/modules/auth/handler"
 	"leslie-blog-server/internal/modules/category"
@@ -20,7 +21,6 @@ import (
 	"leslie-blog-server/internal/modules/user"
 	userHandler "leslie-blog-server/internal/modules/user/handler"
 	"leslie-blog-server/internal/pkg/casbin"
-	"leslie-blog-server/internal/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -41,6 +41,8 @@ type Router struct {
 	projectPublicHandler  *projectHandler.ProjectPublicHandler
 	techstackHandler      *techstackHandler.TechStackHandler
 	homeHandler           *homeHandler.HomeHandler
+	healthHandler         *health.Handler
+	readyHandler          *health.ReadyHandler
 
 	// jwtMiddleware 是 JWT 认证中间件。
 	//
@@ -65,6 +67,8 @@ func New(
 	projectPublicHandler *projectHandler.ProjectPublicHandler,
 	techstackHandler *techstackHandler.TechStackHandler,
 	homeHandler *homeHandler.HomeHandler,
+	healthHandler *health.Handler,
+	readyHandler *health.ReadyHandler,
 	jwtMiddleware gin.HandlerFunc,
 	enforcer *casbin.Enforcer,
 ) *Router {
@@ -83,6 +87,8 @@ func New(
 		projectPublicHandler:  projectPublicHandler,
 		techstackHandler:      techstackHandler,
 		homeHandler:           homeHandler,
+		healthHandler:         healthHandler,
+		readyHandler:          readyHandler,
 		jwtMiddleware:         jwtMiddleware,
 		enforcer:              enforcer,
 	}
@@ -94,9 +100,15 @@ func (r *Router) Register() {
 	// ==================================================
 	// 健康检查
 	// ==================================================
+	r.engine.GET(
+		"/health",
+		r.healthHandler.Health,
+	)
 
-	r.engine.GET("/health", health)
-
+	r.engine.GET(
+		"/ready",
+		r.readyHandler.Ready,
+	)
 	// ==================================================
 	// Public API
 	// ==================================================
@@ -197,11 +209,4 @@ func (r *Router) Register() {
 		r.enforcer,
 	)
 
-}
-
-// health 是健康检查接口。
-func health(c *gin.Context) {
-	response.Success(c, gin.H{
-		"status": "ok",
-	})
 }

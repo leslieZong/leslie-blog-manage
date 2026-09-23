@@ -7,6 +7,7 @@ import (
 	"leslie-blog-server/internal/bootstrap"
 	"leslie-blog-server/internal/config"
 	"leslie-blog-server/internal/database"
+	"leslie-blog-server/internal/health"
 	"leslie-blog-server/internal/middleware"
 	"leslie-blog-server/internal/modules/auth/handler"
 	authService "leslie-blog-server/internal/modules/auth/service"
@@ -205,6 +206,13 @@ func New(cfg *config.Config) (*Server, error) {
 	)
 	homeH := homeHandler.NewHomeHandler(homeSvc)
 
+	healthHandler := health.NewHandler()
+
+	readyHandler := health.NewReadyHandler(
+		health.NewMySQLChecker(db),
+		health.NewRedisChecker(redisClient),
+	)
+
 	// ==================================================
 	// 9. 创建 JWT Middleware
 	// ==================================================
@@ -244,6 +252,8 @@ func New(cfg *config.Config) (*Server, error) {
 		projectPublicHandler,
 		techstackH,
 		homeH,
+		healthHandler,
+		readyHandler,
 		jwtMiddleware,
 		enforcer,
 	)
