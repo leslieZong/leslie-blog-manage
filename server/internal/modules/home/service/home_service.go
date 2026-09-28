@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"time"
 
 	categorydto "leslie-blog-server/internal/modules/category/dto"
@@ -21,6 +23,7 @@ import (
 	techstackmodel "leslie-blog-server/internal/modules/techstack/model"
 	techstackservice "leslie-blog-server/internal/modules/techstack/service"
 	"leslie-blog-server/internal/pkg/cache"
+	"leslie-blog-server/internal/pkg/logger"
 	"leslie-blog-server/internal/pkg/pagination"
 
 	"golang.org/x/sync/errgroup"
@@ -43,6 +46,7 @@ type homeService struct {
 	projectService   projectservice.ProjectService
 	techStackService techstackservice.TechStackService
 	cache            cache.Cache
+	logger           *logger.Logger
 }
 
 func NewHomeService(
@@ -51,6 +55,7 @@ func NewHomeService(
 	projectService projectservice.ProjectService,
 	techStackService techstackservice.TechStackService,
 	cache cache.Cache,
+	logger *logger.Logger,
 ) HomeService {
 
 	return &homeService{
@@ -62,6 +67,7 @@ func NewHomeService(
 
 		techStackService: techStackService,
 		cache:            cache,
+		logger:           logger,
 	}
 }
 
@@ -94,6 +100,21 @@ func (s *homeService) GetHome(
 		// 不直接让整个 Home API 失败。
 		//
 		// 因为缓存本身只是性能优化。
+	} else {
+		if !errors.Is(err, cache.ErrCacheMiss) {
+
+			s.logger.Warn(
+				"failed to get home cache",
+				slog.String(
+					"cache_key",
+					cache.KeyHome,
+				),
+				slog.Any(
+					"error",
+					err,
+				),
+			)
+		}
 	}
 
 	// 2. 缓存不存在 / 缓存异常

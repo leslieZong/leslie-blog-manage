@@ -11,7 +11,9 @@ import (
 	"leslie-blog-server/internal/pkg/auth"
 	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/database"
+	"leslie-blog-server/internal/pkg/logger"
 	"leslie-blog-server/internal/pkg/ulid"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -136,6 +138,7 @@ type postService struct {
 	tagService         tagService.TagService
 	transactionManager *database.TransactionManager
 	cache              cache.Cache
+	logger             *logger.Logger
 }
 
 func NewPostService(
@@ -145,6 +148,7 @@ func NewPostService(
 	tagService tagService.TagService,
 	transactionManager *database.TransactionManager,
 	cache cache.Cache,
+	logger *logger.Logger,
 ) PostService {
 
 	return &postService{
@@ -154,6 +158,7 @@ func NewPostService(
 		tagService:         tagService,
 		transactionManager: transactionManager,
 		cache:              cache,
+		logger:             logger,
 	}
 }
 
@@ -225,7 +230,6 @@ func (s *postService) Create(
 			http.StatusBadRequest,
 			"post title is empty",
 		)
-
 	}
 
 	if slug == "" {
@@ -376,9 +380,17 @@ func (s *postService) Create(
 	); err != nil {
 
 		// 这里应该记录日志。
-		//
-		// 暂时没有引入 Logger 的情况下，
-		// 可以先保留这个位置。
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return post, nil
@@ -822,6 +834,17 @@ func (s *postService) Update(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 	// 刷新文章，确保关联的 Tag 刷新。
 	post, err = s.repo.FindByID(ctx, id)
@@ -928,6 +951,17 @@ func (s *postService) Publish(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return post, nil
@@ -988,6 +1022,21 @@ func (s *postService) Archive(
 		ctx,
 		post,
 	); err != nil {
+		s.logger.Error(
+			"failed to publish post",
+			slog.String(
+				"post_id",
+				post.ID,
+			),
+			slog.String(
+				"user_id",
+				actor.UserID,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 		return nil, err
 	}
 	// 删除 Home Cache。
@@ -996,6 +1045,17 @@ func (s *postService) Archive(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return post, nil
@@ -1040,6 +1100,17 @@ func (s *postService) Delete(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return nil

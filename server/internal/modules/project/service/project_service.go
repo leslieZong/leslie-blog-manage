@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	techstackRepository "leslie-blog-server/internal/modules/techstack/repository"
 	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/database"
+	"leslie-blog-server/internal/pkg/logger"
 	"leslie-blog-server/internal/pkg/ulid"
 
 	"gorm.io/gorm"
@@ -81,6 +83,7 @@ type projectService struct {
 
 	transactionManager *database.TransactionManager
 	cache              cache.Cache
+	logger             *logger.Logger
 }
 
 func NewProjectService(
@@ -88,6 +91,7 @@ func NewProjectService(
 	techstackRepo techstackRepository.TechStackRepository,
 	transactionManager *database.TransactionManager,
 	cache cache.Cache,
+	logger *logger.Logger,
 ) ProjectService {
 
 	return &projectService{
@@ -95,6 +99,7 @@ func NewProjectService(
 		techstackRepo:      techstackRepo,
 		transactionManager: transactionManager,
 		cache:              cache,
+		logger:             logger,
 	}
 }
 
@@ -300,6 +305,17 @@ func (s *projectService) Create(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return project, nil
@@ -533,6 +549,17 @@ func (s *projectService) Update(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 	project, err = s.repo.FindByID(
 		ctx,
@@ -657,6 +684,17 @@ func (s *projectService) Delete(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return nil

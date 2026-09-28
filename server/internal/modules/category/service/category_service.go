@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"leslie-blog-server/internal/modules/category/repository"
 
 	"leslie-blog-server/internal/pkg/cache"
+	"leslie-blog-server/internal/pkg/logger"
 	"leslie-blog-server/internal/pkg/ulid"
 
 	"gorm.io/gorm"
@@ -78,8 +80,9 @@ type CategoryService interface {
 //
 // CategoryService 的具体实现。
 type categoryService struct {
-	repo  repository.CategoryRepository
-	cache cache.Cache
+	repo   repository.CategoryRepository
+	cache  cache.Cache
+	logger *logger.Logger
 }
 
 // NewCategoryService
@@ -88,10 +91,12 @@ type categoryService struct {
 func NewCategoryService(
 	repo repository.CategoryRepository,
 	cache cache.Cache,
+	logger *logger.Logger,
 ) CategoryService {
 	return &categoryService{
-		repo:  repo,
-		cache: cache,
+		repo:   repo,
+		cache:  cache,
+		logger: logger,
 	}
 }
 
@@ -216,6 +221,17 @@ func (s *categoryService) Create(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return category, nil
@@ -458,6 +474,17 @@ func (s *categoryService) Update(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return category, nil
@@ -555,6 +582,17 @@ func (s *categoryService) Delete(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return nil

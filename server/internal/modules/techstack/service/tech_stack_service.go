@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"leslie-blog-server/internal/modules/techstack/model"
 	"leslie-blog-server/internal/modules/techstack/repository"
 	"leslie-blog-server/internal/pkg/cache"
+	"leslie-blog-server/internal/pkg/logger"
 	"leslie-blog-server/internal/pkg/ulid"
 
 	"gorm.io/gorm"
@@ -62,18 +64,21 @@ type TechStackService interface {
 }
 
 type techStackService struct {
-	repo  repository.TechStackRepository
-	cache cache.Cache
+	repo   repository.TechStackRepository
+	cache  cache.Cache
+	logger *logger.Logger
 }
 
 func NewTechStackService(
 	repo repository.TechStackRepository,
 	cache cache.Cache,
+	logger *logger.Logger,
 ) TechStackService {
 
 	return &techStackService{
-		repo:  repo,
-		cache: cache,
+		repo:   repo,
+		cache:  cache,
+		logger: logger,
 	}
 }
 
@@ -176,6 +181,17 @@ func (s *techStackService) Create(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return techStack, nil
@@ -332,6 +348,17 @@ func (s *techStackService) Delete(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return nil
@@ -454,6 +481,17 @@ func (s *techStackService) Update(
 		s.cache,
 	); err != nil {
 		// 记录日志
+		s.logger.Warn(
+			"failed to invalidate home cache",
+			slog.String(
+				"cache_key",
+				cache.KeyHome,
+			),
+			slog.Any(
+				"error",
+				err,
+			),
+		)
 	}
 
 	return techStack, nil

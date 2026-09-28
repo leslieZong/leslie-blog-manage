@@ -35,6 +35,8 @@ import (
 	userHandler "leslie-blog-server/internal/modules/user/handler"
 	userRepository "leslie-blog-server/internal/modules/user/repository"
 	userService "leslie-blog-server/internal/modules/user/service"
+	logger "leslie-blog-server/internal/pkg/logger"
+
 	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/casbin"
 	pkgDatabase "leslie-blog-server/internal/pkg/database"
@@ -96,12 +98,17 @@ func New(cfg *config.Config) (*Server, error) {
 		return nil, err
 	}
 
+	log := logger.New(
+		cfg.App.Env == "development",
+	)
+
 	// ==================================================
 	// 3. 注册全局 Middleware
 	// ==================================================
 
 	engine.Use(
-		middleware.Logger(),
+		middleware.RequestID(),
+		middleware.RequestLogger(log),
 		middleware.Recovery(),
 		middleware.Cors(),
 	)
@@ -144,6 +151,7 @@ func New(cfg *config.Config) (*Server, error) {
 		tagSvc,
 		pkgDatabase.NewTransactionManager(db),
 		cacheStore,
+		log,
 	)
 	authSvc := authService.NewAuthService(
 		userRepo,
@@ -154,16 +162,19 @@ func New(cfg *config.Config) (*Server, error) {
 	categorySvc := categoryService.NewCategoryService(
 		categoryRepo,
 		cacheStore,
+		log,
 	)
 	projectSvc := projectService.NewProjectService(
 		projectRepo,
 		techStackRepo,
 		pkgDatabase.NewTransactionManager(db),
 		cacheStore,
+		log,
 	)
 	techstackSvc := techstackService.NewTechStackService(
 		techStackRepo,
 		cacheStore,
+		log,
 	)
 	homeSvc := homeService.NewHomeService(
 		postSvc,
@@ -171,6 +182,7 @@ func New(cfg *config.Config) (*Server, error) {
 		projectSvc,
 		techstackSvc,
 		cacheStore,
+		log,
 	)
 
 	// ==================================================

@@ -14,6 +14,7 @@ type Config struct {
 	MySQL  MySQLConfig  `mapstructure:"mysql"`
 	JWT    JWTConfig    `mapstructure:"jwt"`
 	Redis  RedisConfig  `mapstructure:"redis"`
+	App    AppConfig    `mapstructure:"app"`
 }
 
 // ServerConfig 保存 HTTP Server 相关配置。
@@ -65,6 +66,9 @@ type JWTConfig struct {
 	//
 	// 表示 Token 有效期为 24 小时。
 	ExpireHours int `mapstructure:"expire_hours"`
+}
+type AppConfig struct {
+	Env string `mapstructure:"env"`
 }
 
 // RedisConfig 保存 Redis 相关配置。
