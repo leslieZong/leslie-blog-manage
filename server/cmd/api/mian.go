@@ -46,7 +46,8 @@ func main() {
 	// 第三步：启动 HTTP Server
 	// --------------------------------------------------
 
-	if err := srv.Run(); err != nil {
+	err = srv.Run()
+	if err != nil {
 		log.Fatalf(
 			"server run failed: %v",
 			err,

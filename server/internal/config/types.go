@@ -60,8 +60,9 @@ type JWTConfig struct {
 	ExpireHours int `mapstructure:"expire_hours"`
 }
 type AppConfig struct {
-	Env  string `mapstructure:"env"`
-	Name string `mapstructure:"name"`
+	Env     string `mapstructure:"env"`
+	Name    string `mapstructure:"name"`
+	GinMode string `mapstructure:"gin_mode"`
 }
 
 // RedisConfig 保存 Redis 相关配置。

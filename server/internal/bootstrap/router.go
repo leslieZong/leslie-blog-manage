@@ -1,10 +1,18 @@
 package bootstrap
 
 import (
+	"context"
+	"errors"
+	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
+	"time"
 
 	"leslie-blog-server/internal/config"
+	"leslie-blog-server/internal/database"
 	"leslie-blog-server/internal/health"
 	"leslie-blog-server/internal/middleware"
 	"leslie-blog-server/internal/modules/auth/handler"
@@ -49,10 +57,12 @@ import (
 
 // Server 表示 Leslie Blog API Server。
 type Server struct {
-	cfg    *config.Config
-	engine *gin.Engine
-	router *router.Router
-	db     *gorm.DB
+	cfg         *config.Config
+	engine      *gin.Engine
+	router      *router.Router
+	db          *gorm.DB
+	log         *logger.Logger
+	redisClient *redis.Client
 }
 
 func NewRouter(
@@ -63,7 +73,7 @@ func NewRouter(
 	cacheStore cache.Cache,
 	redisClient *redis.Client,
 ) (*Server, error) {
-
+	gin.SetMode(cfg.App.GinMode)
 	engine := gin.New()
 
 	// ==================================================
@@ -253,10 +263,12 @@ func NewRouter(
 		enforcer,
 	)
 	return &Server{
-		cfg:    cfg,
-		engine: engine,
-		router: r,
-		db:     db,
+		cfg:         cfg,
+		engine:      engine,
+		router:      r,
+		db:          db,
+		log:         log,
+		redisClient: redisClient,
 	}, nil
 }
 
@@ -266,20 +278,127 @@ func (s *Server) Run() error {
 	// 注册所有路由。
 	s.router.Register()
 
-	// 生成监听地址。
-	//
-	// 例如：
-	//
-	// Host = 0.0.0.0
-	// Port = 8080
-	//
-	// 最终：
-	//
-	// 0.0.0.0:8080
-	addr := s.cfg.Server.Host +
-		":" +
-		strconv.Itoa(s.cfg.Server.Port)
+	// // 生成监听地址。
+	// //
+	// // 例如：
+	// //
+	// // Host = 0.0.0.0
+	// // Port = 8080
+	// //
+	// // 最终：
+	// //
+	// // 0.0.0.0:8080
+	// addr := s.cfg.Server.Host +
+	// 	":" +
+	// 	strconv.Itoa(s.cfg.Server.Port)
 
-	// 启动 Gin HTTP Server。
-	return s.engine.Run(addr)
+	// // 启动 Gin HTTP Server。
+	// return s.engine.Run(addr)
+
+	server := &http.Server{
+		Addr: s.cfg.Server.Host +
+			":" +
+			strconv.Itoa(s.cfg.Server.Port),
+		Handler: s.engine,
+	}
+
+	// ------------------------------------------------
+	// 7. 启动 HTTP Server
+	// ------------------------------------------------
+
+	go func() {
+
+		s.log.Info(
+			"http server started",
+			slog.String(
+				"addr",
+				server.Addr,
+			),
+		)
+
+		if err := server.ListenAndServe(); err != nil &&
+			!errors.Is(
+				err,
+				http.ErrServerClosed,
+			) {
+
+			s.log.Error(
+				"http server stopped unexpectedly",
+				slog.Any("error", err),
+			)
+		}
+
+	}()
+	// ------------------------------------------------
+	// 8. 等待退出信号
+	// ------------------------------------------------
+
+	stop := make(
+		chan os.Signal,
+		1,
+	)
+
+	signal.Notify(
+		stop,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
+
+	<-stop
+
+	s.log.Info(
+		"shutdown signal received",
+	)
+
+	// ------------------------------------------------
+	// 9. 创建 Shutdown Context
+	// ------------------------------------------------
+
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		10*time.Second,
+	)
+
+	defer cancel()
+
+	// ------------------------------------------------
+	// 10. 停止 HTTP Server
+	// ------------------------------------------------
+
+	if err := server.Shutdown(ctx); err != nil {
+
+		s.log.Error(
+			"failed to shutdown http server",
+			slog.Any("error", err),
+		)
+	}
+
+	// ------------------------------------------------
+	// 11. 关闭 Redis
+	// ------------------------------------------------
+
+	if err := s.redisClient.Close(); err != nil {
+
+		s.log.Error(
+			"failed to close redis",
+			slog.Any("error", err),
+		)
+	}
+
+	// ------------------------------------------------
+	// 12. 关闭 MySQL
+	// ------------------------------------------------
+
+	if err := database.CloseMySQL(s.db); err != nil {
+
+		s.log.Error(
+			"failed to close mysql",
+			slog.Any("error", err),
+		)
+	}
+
+	s.log.Info(
+		"application stopped",
+	)
+	return nil
 }

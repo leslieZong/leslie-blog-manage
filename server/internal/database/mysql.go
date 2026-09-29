@@ -171,3 +171,16 @@ func NewMySQL(cfg config.MySQLConfig) (*gorm.DB, error) {
 	// 所以可以把 db 返回给上层。
 	return db, nil
 }
+
+func CloseMySQL(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("get sql.DB from gorm.DB failed: %w", err)
+	}
+
+	if err := sqlDB.Close(); err != nil {
+		return fmt.Errorf("close sql.DB failed: %w", err)
+	}
+
+	return nil
+}
