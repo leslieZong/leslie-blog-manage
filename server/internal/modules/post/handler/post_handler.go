@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"leslie-blog-server/internal/errors"
+	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/post/dto"
 	"leslie-blog-server/internal/modules/post/repository"
 	"leslie-blog-server/internal/modules/post/service"
@@ -45,7 +45,7 @@ func NewPostHandler(
 	}
 }
 
-func (h *PostHandler) Create(c *gin.Context) {
+func (h *PostHandler) Create(c *gin.Context) error {
 
 	// -------------------------------------------------------
 	// 1. 创建请求 DTO
@@ -62,11 +62,13 @@ func (h *PostHandler) Create(c *gin.Context) {
 		// 这里应该使用你项目现有的统一错误响应方法。
 		//
 		// 不建议重新创建一套错误体系。
-		c.JSON(400, gin.H{
-			"message": "请求参数错误",
-		})
+		return appErrors.Wrap(
+			appErrors.ErrInvalidParams,
+			http.StatusBadRequest,
+			"invalid parameters",
+			err,
+		)
 
-		return
 	}
 
 	// -------------------------------------------------------
@@ -77,11 +79,11 @@ func (h *PostHandler) Create(c *gin.Context) {
 
 	if userID == "" {
 
-		c.JSON(401, gin.H{
-			"message": "未登录",
-		})
-
-		return
+		return appErrors.New(
+			appErrors.ErrUnauthorized,
+			http.StatusUnauthorized,
+			"unauthorized",
+		)
 	}
 
 	// -------------------------------------------------------
@@ -107,9 +109,7 @@ func (h *PostHandler) Create(c *gin.Context) {
 	)
 
 	if err != nil {
-		response.AppError(c, err)
-
-		return
+		return err
 	}
 
 	// -------------------------------------------------------
@@ -123,10 +123,11 @@ func (h *PostHandler) Create(c *gin.Context) {
 	// -------------------------------------------------------
 
 	response.Success(c, res)
+	return nil
 }
 
 // GetByID 获取文章详情。
-func (h *PostHandler) GetByID(c *gin.Context) {
+func (h *PostHandler) GetByID(c *gin.Context) error {
 
 	// 从 URL 中获取文章 ID。
 	//
@@ -144,15 +145,12 @@ func (h *PostHandler) GetByID(c *gin.Context) {
 	// 调用 Service。
 	post, err := h.service.GetByID(ctx, id)
 
+	// Service 出错，
+	// 不在这里处理。
+	//
+	// 直接向上返回。
 	if err != nil {
-
-		response.Error(
-			c,
-			http.StatusNotFound,
-			errors.ErrPostNotFound,
-			"post not found",
-		)
-		return
+		return err
 	}
 
 	// Model → DTO。
@@ -160,6 +158,7 @@ func (h *PostHandler) GetByID(c *gin.Context) {
 
 	// 返回 JSON。
 	response.Success(c, res)
+	return nil
 }
 
 // List 获取文章列表。

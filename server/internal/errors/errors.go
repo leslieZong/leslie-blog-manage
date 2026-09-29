@@ -3,6 +3,7 @@ package errors
 import (
 	"errors"
 	"fmt"
+	"net/http"
 )
 
 // ============================================================
@@ -230,3 +231,30 @@ var ErrRoleNameExists = errors.New(
 var ErrCannotDeleteSelf = errors.New(
 	"cannot delete yourself",
 )
+
+// FromError 将普通 error 转换为 AppError。
+//
+// 如果 error 本身已经是 AppError，
+// 就直接返回。
+//
+// 如果不是 AppError，
+// 则统一转换成 500 Internal Server Error。
+func FromError(err error) *AppError {
+
+	if err == nil {
+		return nil
+	}
+
+	var appErr *AppError
+
+	if errors.As(err, &appErr) {
+		return appErr
+	}
+
+	return Wrap(
+		ErrInternalServer,
+		http.StatusInternalServerError,
+		"internal server error",
+		err,
+	)
+}

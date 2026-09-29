@@ -4,6 +4,7 @@ import (
 	"leslie-blog-server/internal/middleware"
 	"leslie-blog-server/internal/modules/post/handler"
 	"leslie-blog-server/internal/pkg/casbin"
+	"leslie-blog-server/internal/pkg/httpx"
 	"leslie-blog-server/internal/pkg/permission"
 
 	"github.com/gin-gonic/gin"
@@ -33,7 +34,7 @@ func RegisterRoutes(
 	posts.POST(
 		"",
 		middleware.Permission(enforcer, permission.PostCreate),
-		postHandler.Create,
+		httpx.Adapt(postHandler.Create),
 	)
 
 	// 获取文章列表。
@@ -47,7 +48,7 @@ func RegisterRoutes(
 	posts.GET(
 		"/:id",
 		middleware.Permission(enforcer, permission.PostRead),
-		postHandler.GetByID,
+		httpx.Adapt(postHandler.GetByID),
 	)
 
 	// 修改文章。

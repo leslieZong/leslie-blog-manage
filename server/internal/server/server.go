@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"net/http"
 	"strconv"
 
 	"leslie-blog-server/internal/bootstrap"
@@ -36,7 +37,9 @@ import (
 	userRepository "leslie-blog-server/internal/modules/user/repository"
 	userService "leslie-blog-server/internal/modules/user/service"
 	logger "leslie-blog-server/internal/pkg/logger"
+	"leslie-blog-server/internal/response"
 
+	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/casbin"
 	pkgDatabase "leslie-blog-server/internal/pkg/database"
@@ -109,9 +112,29 @@ func New(cfg *config.Config) (*Server, error) {
 	engine.Use(
 		middleware.RequestID(),
 		middleware.RequestLogger(log),
+		middleware.ErrorHandler(log),
 		middleware.Recovery(),
 		middleware.Cors(),
 	)
+	// 注册 404 处理函数。
+	engine.NoRoute(func(c *gin.Context) {
+		response.Error(
+			c,
+			http.StatusNotFound,
+			appErrors.ErrNotFound,
+			"resource not found",
+		)
+	})
+	// 注册 405 处理函数。
+	engine.HandleMethodNotAllowed = true
+	engine.NoMethod(func(c *gin.Context) {
+		response.Error(
+			c,
+			http.StatusMethodNotAllowed,
+			appErrors.ErrInvalidParams,
+			"method not allowed",
+		)
+	})
 
 	// ==================================================
 	// 4. 创建模块 Repository
