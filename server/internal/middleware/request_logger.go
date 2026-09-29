@@ -25,7 +25,7 @@ func RequestLogger(
 		latency := time.Since(start)
 
 		log := logger.WithContext(
-			c.Request.Context(),
+			c,
 			appLogger,
 		)
 

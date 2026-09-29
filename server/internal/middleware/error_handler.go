@@ -42,7 +42,7 @@ func ErrorHandler(
 
 		// 获取带 Request ID 的 Logger。
 		log := logger.WithContext(
-			c.Request.Context(),
+			c,
 			appLogger,
 		)
 

@@ -1,6 +1,8 @@
 package auth
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 // ContextKeyUserID 是 Gin Context 中保存用户 ID 时使用的 key。
 //
