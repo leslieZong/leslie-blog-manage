@@ -10,6 +10,7 @@ func RegisterRoutes(
 	group *gin.RouterGroup,
 	authHandler *handler.AuthHandler,
 	jwtMiddleware gin.HandlerFunc,
+	requestMetaMiddleware gin.HandlerFunc,
 ) {
 
 	// =========================================================
@@ -34,6 +35,7 @@ func RegisterRoutes(
 	group.GET(
 		"/auth/me",
 		jwtMiddleware,
+		requestMetaMiddleware,
 		authHandler.Me,
 	)
 }

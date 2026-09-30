@@ -58,6 +58,9 @@ var defaultRolePermissions = map[string][]string{
 		"techstack:create",
 		"techstack:update",
 		"techstack:delete",
+
+		"audit:read",
+		"audit:create",
 	},
 
 	// editor 负责内容管理。

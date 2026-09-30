@@ -259,13 +259,24 @@ var systemPermissions = []SeedPermission{
 		Action:      "delete",
 		Description: "删除技术栈",
 	},
+	{
+		Name:        "audit:read",
+		DisplayName: "查看审计日志",
+		Resource:    "audit",
+		Action:      "read",
+		Description: "查看审计日志",
+	},
+	{
+		Name:        "audit:create",
+		DisplayName: "创建审计日志",
+		Resource:    "audit",
+		Action:      "create",
+		Description: "创建审计日志",
+	},
 }
 
 // Seed 初始化系统 Permission。
-//
-// 这个方法必须保证幂等性：
-//
-// 第一次启动：
+
 // 创建所有不存在的权限。
 //
 // 第二次启动：

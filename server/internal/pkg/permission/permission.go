@@ -45,4 +45,8 @@ const (
 	TechStackCreate = "techstack:create"
 	TechStackUpdate = "techstack:update"
 	TechStackDelete = "techstack:delete"
+
+	// Audit 权限
+	AuditRead   = "audit:read"
+	AuditCreate = "audit:create"
 )

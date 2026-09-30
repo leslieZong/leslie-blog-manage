@@ -41,7 +41,7 @@ func RegisterRoutes(
 	posts.GET(
 		"",
 		middleware.Permission(enforcer, permission.PostRead),
-		postHandler.List,
+		httpx.Adapt(postHandler.List),
 	)
 
 	// 获取文章详情。
@@ -55,7 +55,7 @@ func RegisterRoutes(
 	posts.PUT(
 		"/:id",
 		middleware.Permission(enforcer, permission.PostUpdate),
-		postHandler.Update,
+		httpx.Adapt(postHandler.Update),
 	)
 
 	// 删除文章。

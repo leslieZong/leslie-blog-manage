@@ -60,6 +60,9 @@ func seedCasbin(
 
 		// Dashboard
 		{"dashboard", "read"},
+		// Audit
+		{"audit", "read"},
+		{"audit", "create"},
 	}
 
 	// 给 admin 添加权限。

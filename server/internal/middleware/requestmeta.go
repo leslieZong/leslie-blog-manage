@@ -1,0 +1,83 @@
+package middleware
+
+import (
+	"leslie-blog-server/internal/pkg/auth"
+	"leslie-blog-server/internal/pkg/logger"
+	"leslie-blog-server/internal/pkg/requestmeta"
+
+	"github.com/gin-gonic/gin"
+)
+
+// RequestMetaMiddleware 创建请求元数据 Middleware。
+//
+// 它负责收集：
+//
+// 1. Request ID
+// 2. User ID
+// 3. Client IP
+// 4. User-Agent
+//
+// 然后把这些信息写入标准 context.Context。
+func RequestMetaMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		// --------------------------------------------------
+		// 1. 获取 Request ID
+		// --------------------------------------------------
+		//
+		// Request ID 应该已经由 RequestID Middleware
+		// 写入 Gin Context。
+		//
+		// 所以这里不要重新生成。
+		requestID := logger.RequestID(c.Request.Context())
+
+		// --------------------------------------------------
+		// 2. 获取 User ID
+		// --------------------------------------------------
+		//
+		// JWT Middleware 如果认证成功，
+		// 应该已经把 UserID 写入 Gin Context。
+		//
+		// 如果当前请求没有登录，
+		// userID 就保持为空。
+		userID := auth.GetUserID(c)
+
+		// --------------------------------------------------
+		// 3. 获取客户端 IP
+		// --------------------------------------------------
+		ip := c.ClientIP()
+
+		// --------------------------------------------------
+		// 4. 获取 User-Agent
+		// --------------------------------------------------
+		userAgent := c.Request.UserAgent()
+
+		// --------------------------------------------------
+		// 5. 组装 Metadata
+		// --------------------------------------------------
+		metadata := requestmeta.Metadata{
+			RequestID: requestID,
+			UserID:    userID,
+			IP:        ip,
+			UserAgent: userAgent,
+		}
+
+		// --------------------------------------------------
+		// 6. 将 Metadata 放入标准 context.Context
+		// --------------------------------------------------
+		ctx := requestmeta.WithMetadata(
+			c.Request.Context(),
+			metadata,
+		)
+
+		// --------------------------------------------------
+		// 7. 将新的 context 设置回 HTTP Request
+		// --------------------------------------------------
+		c.Request = c.Request.WithContext(ctx)
+
+		// --------------------------------------------------
+		// 8. 继续执行后面的 Middleware / Handler
+		// --------------------------------------------------
+		c.Next()
+	}
+}

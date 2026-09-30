@@ -15,6 +15,9 @@ import (
 	"leslie-blog-server/internal/database"
 	"leslie-blog-server/internal/health"
 	"leslie-blog-server/internal/middleware"
+	auditHandler "leslie-blog-server/internal/modules/audit/handler"
+	auditRepository "leslie-blog-server/internal/modules/audit/repository"
+	auditService "leslie-blog-server/internal/modules/audit/service"
 	"leslie-blog-server/internal/modules/auth/handler"
 	authService "leslie-blog-server/internal/modules/auth/service"
 	categoryHandler "leslie-blog-server/internal/modules/category/handler"
@@ -119,6 +122,7 @@ func NewRouter(
 	postTagRepo := postRepository.NewPostTagRepository(db)
 	projectRepo := projectRepository.NewProjectRepository(db)
 	techStackRepo := techstackRepository.NewTechStackRepository(db)
+	auditRepo := auditRepository.NewAuditLogRepository(db)
 
 	// ==================================================
 	// 5. 创建模块 Service
@@ -137,6 +141,9 @@ func NewRouter(
 	tagSvc := tagService.NewTagService(
 		tagRepo,
 	)
+	auditSvc := auditService.NewAuditService(
+		auditRepo,
+	)
 	postSvc := postService.NewPostService(
 		postRepo,
 		postTagRepo,
@@ -145,6 +152,7 @@ func NewRouter(
 		pkgDatabase.NewTransactionManager(db),
 		cacheStore,
 		log,
+		auditSvc,
 	)
 	authSvc := authService.NewAuthService(
 		userRepo,
@@ -217,6 +225,7 @@ func NewRouter(
 		health.NewMySQLChecker(db),
 		health.NewRedisChecker(redisClient),
 	)
+	auditH := auditHandler.NewAuditHandler(auditSvc)
 
 	// ==================================================
 	// 9. 创建 JWT Middleware
@@ -238,6 +247,7 @@ func NewRouter(
 	jwtMiddleware := middleware.JWT(
 		cfg.JWT.Secret,
 	)
+	requestMetaMiddleware := middleware.RequestMetaMiddleware()
 
 	// ==================================================
 	// 10. 创建 Router
@@ -259,7 +269,9 @@ func NewRouter(
 		homeH,
 		healthHandler,
 		readyHandler,
+		auditH,
 		jwtMiddleware,
+		requestMetaMiddleware,
 		enforcer,
 	)
 	return &Server{

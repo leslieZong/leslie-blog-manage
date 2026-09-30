@@ -162,7 +162,7 @@ func (h *PostHandler) GetByID(c *gin.Context) error {
 }
 
 // List 获取文章列表。
-func (h *PostHandler) List(c *gin.Context) {
+func (h *PostHandler) List(c *gin.Context) error {
 
 	// 第一步：
 	// 获取请求 Context。
@@ -178,9 +178,7 @@ func (h *PostHandler) List(c *gin.Context) {
 
 	if err != nil {
 
-		response.AppError(c, err)
-
-		return
+		return err
 	}
 	// 第三步：
 	// 转换为 API 列表 DTO。
@@ -194,10 +192,11 @@ func (h *PostHandler) List(c *gin.Context) {
 	)
 
 	response.Success(c, result)
+	return nil
 }
 
 // Update 更新文章。
-func (h *PostHandler) Update(c *gin.Context) {
+func (h *PostHandler) Update(c *gin.Context) error {
 
 	// -------------------------------------------------------
 	// 1. 获取文章 ID
@@ -213,9 +212,14 @@ func (h *PostHandler) Update(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 
-		response.AppError(c, err)
+		response.Error(
+			c,
+			http.StatusBadRequest,
+			appErrors.ErrInvalidParams,
+			"invalid request body",
+		)
 
-		return
+		return err
 	}
 
 	// -------------------------------------------------------
@@ -226,8 +230,7 @@ func (h *PostHandler) Update(c *gin.Context) {
 	userID := auth.GetUserID(c)
 	roles, err := h.enforcer.GetRolesForUser(userID)
 	if err != nil {
-		response.AppError(c, err)
-		return
+		return err
 	}
 	actor := auth.Actor{
 		UserID:  userID,
@@ -253,7 +256,7 @@ func (h *PostHandler) Update(c *gin.Context) {
 			"message": err.Error(),
 		})
 
-		return
+		return err
 	}
 
 	// -------------------------------------------------------
@@ -267,6 +270,7 @@ func (h *PostHandler) Update(c *gin.Context) {
 	// -------------------------------------------------------
 
 	response.Success(c, res)
+	return nil
 }
 
 // Delete 删除文章。

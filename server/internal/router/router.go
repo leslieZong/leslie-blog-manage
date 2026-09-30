@@ -2,6 +2,8 @@ package router
 
 import (
 	"leslie-blog-server/internal/health"
+	"leslie-blog-server/internal/modules/audit"
+	auditHandler "leslie-blog-server/internal/modules/audit/handler"
 	"leslie-blog-server/internal/modules/auth"
 	authHandler "leslie-blog-server/internal/modules/auth/handler"
 	"leslie-blog-server/internal/modules/category"
@@ -43,13 +45,15 @@ type Router struct {
 	homeHandler           *homeHandler.HomeHandler
 	healthHandler         *health.Handler
 	readyHandler          *health.ReadyHandler
+	auditHandler          *auditHandler.AuditHandler
 
 	// jwtMiddleware 是 JWT 认证中间件。
 	//
 	// Server 创建好 Middleware 后，
 	// 注入到 Router。
-	jwtMiddleware gin.HandlerFunc
-	enforcer      *casbin.Enforcer
+	jwtMiddleware         gin.HandlerFunc
+	requestMetaMiddleware gin.HandlerFunc
+	enforcer              *casbin.Enforcer
 }
 
 // New 创建 Router。
@@ -69,7 +73,9 @@ func New(
 	homeHandler *homeHandler.HomeHandler,
 	healthHandler *health.Handler,
 	readyHandler *health.ReadyHandler,
+	auditHandler *auditHandler.AuditHandler,
 	jwtMiddleware gin.HandlerFunc,
+	requestMetaMiddleware gin.HandlerFunc,
 	enforcer *casbin.Enforcer,
 ) *Router {
 
@@ -89,7 +95,9 @@ func New(
 		homeHandler:           homeHandler,
 		healthHandler:         healthHandler,
 		readyHandler:          readyHandler,
+		auditHandler:          auditHandler,
 		jwtMiddleware:         jwtMiddleware,
+		requestMetaMiddleware: requestMetaMiddleware,
 		enforcer:              enforcer,
 	}
 }
@@ -114,6 +122,7 @@ func (r *Router) Register() {
 	// ==================================================
 
 	v1 := r.engine.Group("/api/v1")
+	v1.Use(r.requestMetaMiddleware)
 	post.RegisterPublicRoutes(
 		v1,
 		r.publicPostHandler,
@@ -151,6 +160,7 @@ func (r *Router) Register() {
 		admin,
 		r.authHandler,
 		r.jwtMiddleware,
+		r.requestMetaMiddleware,
 	)
 
 	// --------------------------------------------------
@@ -161,7 +171,7 @@ func (r *Router) Register() {
 	protected := admin.Group("")
 
 	// 给 protected Group 添加 JWT Middleware。
-	protected.Use(r.jwtMiddleware)
+	protected.Use(r.jwtMiddleware, r.requestMetaMiddleware)
 
 	// 所有注册到 protected 的接口，
 	// 都必须先通过 JWT 验证。
@@ -203,5 +213,9 @@ func (r *Router) Register() {
 		r.techstackHandler,
 		r.enforcer,
 	)
-
+	audit.RegisterRoutes(
+		protected,
+		r.auditHandler,
+		r.enforcer,
+	)
 }
