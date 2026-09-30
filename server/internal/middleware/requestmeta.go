@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"leslie-blog-server/internal/pkg/auth"
-	"leslie-blog-server/internal/pkg/logger"
 	"leslie-blog-server/internal/pkg/requestmeta"
 
 	"github.com/gin-gonic/gin"
@@ -22,27 +20,6 @@ func RequestMetaMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		// --------------------------------------------------
-		// 1. 获取 Request ID
-		// --------------------------------------------------
-		//
-		// Request ID 应该已经由 RequestID Middleware
-		// 写入 Gin Context。
-		//
-		// 所以这里不要重新生成。
-		requestID := logger.RequestID(c.Request.Context())
-
-		// --------------------------------------------------
-		// 2. 获取 User ID
-		// --------------------------------------------------
-		//
-		// JWT Middleware 如果认证成功，
-		// 应该已经把 UserID 写入 Gin Context。
-		//
-		// 如果当前请求没有登录，
-		// userID 就保持为空。
-		userID := auth.GetUserID(c)
-
-		// --------------------------------------------------
 		// 3. 获取客户端 IP
 		// --------------------------------------------------
 		ip := c.ClientIP()
@@ -56,8 +33,6 @@ func RequestMetaMiddleware() gin.HandlerFunc {
 		// 5. 组装 Metadata
 		// --------------------------------------------------
 		metadata := requestmeta.Metadata{
-			RequestID: requestID,
-			UserID:    userID,
 			IP:        ip,
 			UserAgent: userAgent,
 		}

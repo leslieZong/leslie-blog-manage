@@ -11,6 +11,7 @@ import (
 	"leslie-blog-server/internal/modules/user/dto"
 	"leslie-blog-server/internal/modules/user/model"
 	"leslie-blog-server/internal/modules/user/repository"
+	"leslie-blog-server/internal/pkg/audit"
 	"leslie-blog-server/internal/pkg/casbin"
 	"leslie-blog-server/internal/pkg/password"
 	"leslie-blog-server/internal/pkg/ulid"
@@ -78,8 +79,9 @@ type userService struct {
 	//
 	// 用于确认角色是否真实存在，
 	// 以及获取角色的展示信息。
-	roleRepo roleRepository.RoleRepository
-	enforcer *casbin.Enforcer
+	roleRepo      roleRepository.RoleRepository
+	enforcer      *casbin.Enforcer
+	auditRecorder audit.Recorder
 }
 
 func NewUserService(
@@ -90,11 +92,13 @@ func NewUserService(
 	// 以及获取角色的展示信息。
 	roleRepo roleRepository.RoleRepository,
 	enforcer *casbin.Enforcer,
+	auditRecorder audit.Recorder,
 ) UserService {
 	return &userService{
-		repo:     repo,
-		roleRepo: roleRepo,
-		enforcer: enforcer,
+		repo:          repo,
+		roleRepo:      roleRepo,
+		enforcer:      enforcer,
+		auditRecorder: auditRecorder,
 	}
 }
 
@@ -481,6 +485,15 @@ func (s *userService) Delete(
 	if err := s.enforcer.DeleteRolesForUser(targetUserID); err != nil {
 		return err
 	}
+	// 审计
+	_ = s.auditRecorder.RecordSuccess(
+		ctx,
+		audit.Event{
+			Action:     audit.ActionUserDelete,
+			Resource:   "user",
+			ResourceID: user.ID,
+		},
+	)
 
 	return nil
 }

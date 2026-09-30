@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	appErrors "leslie-blog-server/internal/errors"
-	auditdto "leslie-blog-server/internal/modules/audit/dto"
-	auditLogService "leslie-blog-server/internal/modules/audit/service"
 	categoryRepository "leslie-blog-server/internal/modules/category/repository"
 	"leslie-blog-server/internal/modules/post/model"
 	"leslie-blog-server/internal/modules/post/repository"
 	tagService "leslie-blog-server/internal/modules/tag/service"
-	auditAction "leslie-blog-server/internal/pkg/audit"
+	"leslie-blog-server/internal/pkg/audit"
 	"leslie-blog-server/internal/pkg/auth"
 	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/database"
@@ -142,7 +140,7 @@ type postService struct {
 	transactionManager *database.TransactionManager
 	cache              cache.Cache
 	logger             *logger.Logger
-	auditService       auditLogService.AuditService
+	auditRecorder      audit.Recorder
 }
 
 func NewPostService(
@@ -153,7 +151,7 @@ func NewPostService(
 	transactionManager *database.TransactionManager,
 	cache cache.Cache,
 	logger *logger.Logger,
-	auditService auditLogService.AuditService,
+	auditRecorder audit.Recorder,
 ) PostService {
 
 	return &postService{
@@ -164,7 +162,7 @@ func NewPostService(
 		transactionManager: transactionManager,
 		cache:              cache,
 		logger:             logger,
-		auditService:       auditService,
+		auditRecorder:      auditRecorder,
 	}
 }
 
@@ -398,6 +396,15 @@ func (s *postService) Create(
 			),
 		)
 	}
+
+	_ = s.auditRecorder.RecordSuccess(
+		ctx,
+		audit.Event{
+			Action:     audit.ActionPostCreate,
+			Resource:   "post",
+			ResourceID: post.ID,
+		},
+	)
 
 	return post, nil
 }
@@ -970,18 +977,15 @@ func (s *postService) Publish(
 		)
 	}
 
-	// 记录 Audit Log。
-	if err := s.auditService.Record(
+	// 记录审计
+	_ = s.auditRecorder.RecordSuccess(
 		ctx,
-		auditdto.CreateAuditLogRequest{
-			Action:     auditAction.ActionPostPublish,
+		audit.Event{
+			Action:     audit.ActionPostPublish,
 			Resource:   "post",
-			ResourceID: &post.ID,
-			Result:     auditAction.ResultSuccess,
+			ResourceID: post.ID,
 		},
-	); err != nil {
-		return nil, err
-	}
+	)
 
 	return post, nil
 }

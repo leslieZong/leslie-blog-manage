@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -145,6 +146,10 @@ func JWT(secret string) gin.HandlerFunc {
 			auth.ContextKeyUsername,
 			claims.Username,
 		)
+		ctx := c.Request.Context()
+		ctx = context.WithValue(ctx, auth.ContextKeyUserID, claims.UserID)
+		ctx = context.WithValue(ctx, auth.ContextKeyUsername, claims.Username)
+		c.Request = c.Request.WithContext(ctx)
 
 		// =========================================================
 		// 第六步：认证成功

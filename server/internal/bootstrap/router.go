@@ -47,6 +47,7 @@ import (
 	"leslie-blog-server/internal/response"
 
 	appErrors "leslie-blog-server/internal/errors"
+	"leslie-blog-server/internal/pkg/audit"
 	"leslie-blog-server/internal/pkg/cache"
 	"leslie-blog-server/internal/pkg/casbin"
 	pkgDatabase "leslie-blog-server/internal/pkg/database"
@@ -84,6 +85,7 @@ func NewRouter(
 	// ==================================================
 	engine.Use(
 		middleware.RequestID(),
+		middleware.RequestMetaMiddleware(),
 		middleware.RequestLogger(log),
 		middleware.ErrorHandler(log),
 		middleware.Recovery(),
@@ -128,10 +130,18 @@ func NewRouter(
 	// 5. 创建模块 Service
 	// ==================================================
 
+	auditSvc := auditService.NewAuditService(
+		auditRepo,
+	)
+	auditRecorder := audit.NewRecorder(
+		auditSvc,
+		log,
+	)
 	userSvc := userService.NewUserService(
 		userRepo,
 		roleRepo,
 		enforcer,
+		auditRecorder,
 	)
 	roleSvc := roleService.NewRoleService(
 		roleRepo,
@@ -141,9 +151,7 @@ func NewRouter(
 	tagSvc := tagService.NewTagService(
 		tagRepo,
 	)
-	auditSvc := auditService.NewAuditService(
-		auditRepo,
-	)
+
 	postSvc := postService.NewPostService(
 		postRepo,
 		postTagRepo,
@@ -152,7 +160,7 @@ func NewRouter(
 		pkgDatabase.NewTransactionManager(db),
 		cacheStore,
 		log,
-		auditSvc,
+		auditRecorder,
 	)
 	authSvc := authService.NewAuthService(
 		userRepo,
@@ -247,7 +255,6 @@ func NewRouter(
 	jwtMiddleware := middleware.JWT(
 		cfg.JWT.Secret,
 	)
-	requestMetaMiddleware := middleware.RequestMetaMiddleware()
 
 	// ==================================================
 	// 10. 创建 Router
@@ -271,7 +278,6 @@ func NewRouter(
 		readyHandler,
 		auditH,
 		jwtMiddleware,
-		requestMetaMiddleware,
 		enforcer,
 	)
 	return &Server{

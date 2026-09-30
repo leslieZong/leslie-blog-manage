@@ -9,20 +9,6 @@ package requestmeta
 //
 // “这一次请求是谁发起的、从哪里来、属于哪一次请求。”
 type Metadata struct {
-	// RequestID
-	//
-	// 当前 HTTP 请求唯一 ID。
-	//
-	// 例如：
-	// 01K6ABC123...
-	RequestID string
-
-	// UserID
-	//
-	// 当前登录用户 ID。
-	//
-	// 未登录请求可能为空。
-	UserID string
 
 	// IP
 	//

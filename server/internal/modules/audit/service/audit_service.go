@@ -2,13 +2,10 @@ package service
 
 import (
 	"context"
-	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/audit/dto"
 	"leslie-blog-server/internal/modules/audit/model"
 	"leslie-blog-server/internal/modules/audit/repository"
-	"leslie-blog-server/internal/pkg/requestmeta"
 	"leslie-blog-server/internal/pkg/ulid"
-	"net/http"
 )
 
 type AuditService interface {
@@ -39,23 +36,15 @@ func (s *auditService) Record(
 	ctx context.Context,
 	log dto.CreateAuditLogRequest,
 ) error {
-	metadata, ok := requestmeta.FromContext(ctx)
-	if !ok {
-		return appErrors.New(
-			appErrors.ErrInvalidParams,
-			http.StatusBadRequest,
-			"request metadata not found",
-		)
-	}
 	auditLog := &model.AuditLog{
 		ID:           ulid.New(),
-		UserID:       &metadata.UserID,
+		UserID:       log.UserID,
 		Action:       log.Action,
 		Resource:     log.Resource,
 		ResourceID:   log.ResourceID,
-		RequestID:    &metadata.RequestID,
-		IP:           &metadata.IP,
-		UserAgent:    &metadata.UserAgent,
+		RequestID:    &log.RequestID,
+		IP:           &log.IP,
+		UserAgent:    &log.UserAgent,
 		Result:       log.Result,
 		ErrorMessage: log.ErrorMessage,
 	}

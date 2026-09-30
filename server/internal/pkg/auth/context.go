@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -65,4 +67,18 @@ func GetUsername(c *gin.Context) string {
 	}
 
 	return username
+}
+
+func GetContextUserID(ctx context.Context) string {
+	value := ctx.Value(ContextKeyUserID)
+
+	// 尝试把 any 转换成 string。
+	userID, ok := value.(string)
+
+	// 类型不是 string。
+	if !ok {
+		return ""
+	}
+
+	return userID
 }
