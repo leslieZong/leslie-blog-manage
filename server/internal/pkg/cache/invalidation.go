@@ -1,6 +1,8 @@
 package cache
 
-import "context"
+import (
+	"context"
+)
 
 // InvalidateHome 删除首页缓存。
 //
