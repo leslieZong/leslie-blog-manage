@@ -89,6 +89,9 @@ func Parse(c *gin.Context) Params {
 
 // NewParams 创建分页参数。
 func NewParams(page int, pageSize int) Params {
+	page = max(page, DefaultPage)
+	pageSize = min(pageSize, MaxPageSize)
+
 	return Params{
 		Page:     page,
 		PageSize: pageSize,

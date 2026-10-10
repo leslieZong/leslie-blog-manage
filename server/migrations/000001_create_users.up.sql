@@ -55,9 +55,6 @@ CREATE TABLE IF NOT EXISTS users (
     KEY idx_users_deleted_at (deleted_at)
 )
 ENGINE = InnoDB
-
 DEFAULT CHARSET = utf8mb4
-
 COLLATE = utf8mb4_unicode_ci
-
 COMMENT = '后台用户表';

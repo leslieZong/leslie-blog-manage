@@ -1,4 +1,4 @@
-CREATE TABLE project_tech_stacks (
+CREATE TABLE  IF NOT EXISTS project_tech_stacks (
     project_id CHAR(26) NOT NULL,
 
     tech_stack_id CHAR(26) NOT NULL,

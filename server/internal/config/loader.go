@@ -2,11 +2,39 @@ package config
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
+
+// projectRoot 返回项目根目录（包含 go.mod 的目录）的绝对路径。
+//
+// 通过 runtime.Caller 拿到当前源文件路径，然后向上查找 go.mod。
+// 这样无论程序的工作目录在哪里（go run / go test / 生产环境），
+// 都能稳定定位到 configs/ 目录。
+func projectRoot() (string, error) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", fmt.Errorf("failed to get caller info")
+	}
+
+	dir := filepath.Dir(filename)
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", fmt.Errorf("go.mod not found in parent directories of %s", filename)
+		}
+		dir = parent
+	}
+}
 
 // Load 加载应用配置。
 //
@@ -18,10 +46,17 @@ import (
 //
 // 后面的配置会覆盖前面的配置。
 func Load(configFile string) (*Config, error) {
-	// 加载本地 .env 文件
-	err := godotenv.Load("configs/.env")
+	root, err := projectRoot()
 	if err != nil {
-		return nil, fmt.Errorf(
+		return nil, fmt.Errorf("failed to resolve project root: %w", err)
+	}
+
+	// 加载本地 .env 文件（可选）。
+	// 仅用于本地开发；生产环境使用系统环境变量，文件不存在也不应中断启动。
+	envPath := filepath.Join(root, "configs", ".env")
+	testEnvPath := filepath.Join(root, "configs", ".env.test")
+	if err := godotenv.Load(testEnvPath, envPath); err != nil {
+		log.Printf(
 			"⚠️ 本地 .env 文件未加载（生产环境正常，使用系统环境变量）: %v",
 			err,
 		)
@@ -55,6 +90,11 @@ func Load(configFile string) (*Config, error) {
 	// ------------------------------------------------
 
 	if configFile != "" {
+
+		// 相对路径统一以项目根目录为基准解析，保证 go test 等场景下也能找到文件。
+		if !filepath.IsAbs(configFile) {
+			configFile = filepath.Join(root, configFile)
+		}
 
 		v.SetConfigFile(configFile)
 

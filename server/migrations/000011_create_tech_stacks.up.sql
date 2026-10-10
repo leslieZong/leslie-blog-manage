@@ -1,4 +1,4 @@
-CREATE TABLE tech_stacks (
+CREATE TABLE  IF NOT EXISTS tech_stacks (
     id CHAR(26) NOT NULL,
 
     name VARCHAR(100) NOT NULL,

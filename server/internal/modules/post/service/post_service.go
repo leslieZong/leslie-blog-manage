@@ -1179,7 +1179,7 @@ func (s *postService) validateCategory(
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return appErrors.New(
-			appErrors.ErrInvalidParams,
+			appErrors.ErrCategoryNotFound,
 			http.StatusBadRequest,
 			"category not found",
 		)

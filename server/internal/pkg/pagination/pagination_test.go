@@ -11,7 +11,7 @@ func TestNewParams(t *testing.T) {
 	// pageSize = 1000
 	//
 	// 这两个参数都不符合我们的规范。
-	params := NewParams(1, 100)
+	params := NewParams(0, 1000)
 
 	// page 应该被修正成默认值 1。
 	if params.Page != DefaultPage {

@@ -4,11 +4,13 @@ import (
 	"context"
 	appErrors "leslie-blog-server/internal/errors"
 	categorymodel "leslie-blog-server/internal/modules/category/model"
+	categoryRepository "leslie-blog-server/internal/modules/category/repository"
 	"leslie-blog-server/internal/modules/post/model"
 	"leslie-blog-server/internal/modules/post/repository"
 	"leslie-blog-server/internal/pkg/audit"
 	"leslie-blog-server/internal/pkg/auth"
 	"leslie-blog-server/internal/pkg/cache"
+	"leslie-blog-server/internal/pkg/ulid"
 	"testing"
 	"time"
 
@@ -195,19 +197,6 @@ func (m *mockCache) Delete(
 	return nil
 }
 
-type Recorder interface {
-	RecordSuccess(
-		ctx context.Context,
-		event audit.Event,
-	) error
-
-	RecordFailure(
-		ctx context.Context,
-		event audit.Event,
-		err error,
-	) error
-}
-
 type mockAuditRecorder struct {
 	successEvents []audit.Event
 	failureEvents []audit.Event
@@ -326,9 +315,95 @@ func TestPostService_GetByID_NotFound(t *testing.T) {
 	}
 }
 
+type mockCategoryRepository struct {
+	category *categorymodel.Category
+	err      error
+}
+
+func (m *mockCategoryRepository) FindByID(
+	ctx context.Context,
+	id string,
+) (*categorymodel.Category, error) {
+	return m.category, m.err
+}
+func (m *mockCategoryRepository) FindByName(
+	ctx context.Context,
+	name string,
+) (*categorymodel.Category, error) {
+	return m.category, m.err
+}
+
+func (m *mockCategoryRepository) FindBySlug(
+	ctx context.Context,
+	slug string,
+) (*categorymodel.Category, error) {
+	return m.category, m.err
+}
+
+func (m *mockCategoryRepository) FindAll(
+	ctx context.Context,
+) ([]*categorymodel.Category, error) {
+	return nil, m.err
+}
+
+func (m *mockCategoryRepository) FindPublicAll(
+	ctx context.Context,
+) ([]*categorymodel.Category, error) {
+	return nil, m.err
+}
+
+func (m *mockCategoryRepository) FindPublicBySlug(
+	ctx context.Context,
+	slug string,
+) (*categorymodel.Category, error) {
+	return m.category, m.err
+}
+
+func (m *mockCategoryRepository) FindPage(
+	ctx context.Context,
+	query categoryRepository.CategoryListQuery,
+) ([]*categorymodel.Category, int64, error) {
+	return nil, 0, m.err
+}
+
+func (m *mockCategoryRepository) Create(
+	ctx context.Context,
+	category *categorymodel.Category,
+) error {
+	return m.err
+}
+func (m *mockCategoryRepository) Update(
+	ctx context.Context,
+	category *categorymodel.Category,
+) error {
+	return m.err
+}
+func (m *mockCategoryRepository) Delete(
+	ctx context.Context,
+	id string,
+) error {
+	return m.err
+}
+func (m *mockCategoryRepository) CountPosts(
+	ctx context.Context,
+	categoryID string,
+) (int64, error) {
+	return 0, m.err
+}
+
 type mockCategoryService struct {
 	category *categorymodel.Category
 	err      error
+}
+
+func (m *mockCategoryService) Create(
+	ctx context.Context,
+	name string,
+	slug string,
+	description *string,
+	sort int,
+) (*categorymodel.Category, error) {
+	return m.category, m.err
 }
 
 func (m *mockCategoryService) GetByID(
@@ -339,11 +414,55 @@ func (m *mockCategoryService) GetByID(
 	return m.category, m.err
 }
 
+func (m *mockCategoryService) List(
+	ctx context.Context,
+) ([]*categorymodel.Category, error) {
+	return []*categorymodel.Category{m.category}, m.err
+}
+
+func (m *mockCategoryService) Update(
+	ctx context.Context,
+	id string,
+	name string,
+	slug string,
+	description *string,
+	sort int,
+	status int8,
+) (*categorymodel.Category, error) {
+	return m.category, m.err
+}
+
+func (m *mockCategoryService) Delete(
+	ctx context.Context,
+	id string,
+) error {
+	return m.err
+}
+
+func (m *mockCategoryService) ListPage(
+	ctx context.Context,
+	query categoryRepository.CategoryListQuery,
+) ([]*categorymodel.Category, int64, error) {
+	return []*categorymodel.Category{m.category}, 0, m.err
+}
+func (m *mockCategoryService) ListPublic(
+	ctx context.Context,
+) ([]*categorymodel.Category, error) {
+	return []*categorymodel.Category{m.category}, m.err
+}
+
+func (m *mockCategoryService) GetPublicBySlug(
+	ctx context.Context,
+	slug string,
+) (*categorymodel.Category, error) {
+	return m.category, m.err
+}
+
 func TestPostService_Create_CategoryNotFound(
 	t *testing.T,
 ) {
 
-	categoryService := &mockCategoryService{
+	categoryRepo := &mockCategoryRepository{
 		err: gorm.ErrRecordNotFound,
 	}
 
@@ -352,8 +471,28 @@ func TestPostService_Create_CategoryNotFound(
 	//
 	// 重点不是构造函数形式，
 	// 而是验证 Create 在 Category 不存在时失败。
+	repo := &mockPostRepository{}
+	cacheMock := &mockCache{}
 
-	_ = categoryService
+	auditMock := &mockAuditRecorder{}
+	postService := &postService{
+		repo:          repo,
+		cache:         cacheMock,
+		auditRecorder: auditMock,
+		categoryRepo:  categoryRepo,
+	}
+
+	_, err := postService.Create(
+		context.Background(),
+		ulid.New(),
+		"title",
+		"slug",
+		"content",
+		[]string{"category"},
+		nil,
+		"author",
+		nil,
+	)
 
 	// 期望：
 	//
@@ -362,6 +501,33 @@ func TestPostService_Create_CategoryNotFound(
 	// Create 失败
 	// ↓
 	// 不应该创建 Post
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	appErr := appErrors.FromError(err)
+
+	if appErr.Code != appErrors.ErrCategoryNotFound {
+		t.Fatalf(
+			"expected error %v, got %v",
+			appErrors.ErrCategoryNotFound,
+			appErr.Code,
+		)
+	}
+	if repo.createCalled {
+		t.Fatal("expected repository Create not to be called")
+	}
+	if len(auditMock.successEvents) != 0 {
+		t.Fatalf(
+			"expected 0 audit event, got %d",
+			len(auditMock.successEvents),
+		)
+	}
+	if len(cacheMock.deletedKeys) != 0 {
+		t.Fatalf(
+			"expected 0 deleted cache key, got %d",
+			len(cacheMock.deletedKeys),
+		)
+	}
 }
 
 func TestPostService_Publish_Author(
@@ -756,5 +922,92 @@ func TestPostService_Delete_NonAuthor(
 		t.Fatal(
 			"Delete should not be called",
 		)
+	}
+}
+
+// Table-Driven Test : 可以一次测试多个场景
+// TestPostService_Publish 测试发布文章。
+func TestPostService_Publish(t *testing.T) {
+
+	tests := []struct {
+		name      string
+		actor     auth.Actor
+		post      *model.Post
+		wantError bool
+	}{
+		{
+			name: "author can publish draft",
+			actor: auth.Actor{
+				UserID:  "user-001",
+				IsAdmin: false,
+			},
+			post: &model.Post{
+				ID:       "post-001",
+				AuthorID: "user-001",
+				Status:   "draft",
+			},
+			wantError: false,
+		},
+		{
+			name: "non-author cannot publish",
+			actor: auth.Actor{
+				UserID:  "user-999",
+				IsAdmin: false,
+			},
+			post: &model.Post{
+				ID:       "post-001",
+				AuthorID: "user-001",
+				Status:   "draft",
+			},
+			wantError: true,
+		},
+		{
+			name: "admin can publish",
+			actor: auth.Actor{
+				UserID:  "admin-001",
+				IsAdmin: true,
+			},
+			post: &model.Post{
+				ID:       "post-001",
+				AuthorID: "user-001",
+				Status:   "draft",
+			},
+			wantError: false,
+		},
+	}
+
+	for _, tt := range tests {
+
+		t.Run(tt.name, func(t *testing.T) {
+
+			repo := &mockPostRepository{
+				post: tt.post,
+			}
+			cache := &mockCache{}
+			auditRecorder := &mockAuditRecorder{}
+
+			service := &postService{
+				repo:          repo,
+				cache:         cache,
+				auditRecorder: auditRecorder,
+			}
+
+			_, err := service.Publish(
+				context.Background(),
+				tt.actor,
+				tt.post.ID,
+			)
+
+			if tt.wantError && err == nil {
+				t.Fatal("expected error, got nil")
+			}
+
+			if !tt.wantError && err != nil {
+				t.Fatalf(
+					"expected no error, got %v",
+					err,
+				)
+			}
+		})
 	}
 }

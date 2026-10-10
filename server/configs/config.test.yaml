@@ -1,0 +1,28 @@
+app:
+  name: 'leslie-blog-server-test'
+  env: 'test'
+
+server:
+  host: 0.0.0.0
+  port: 8080
+
+mysql:
+  host: '127.0.0.1'
+  port: 3306
+  username: 'root'
+  password: ''
+  database: 'leslie_blog_test'
+  charset: utf8mb4
+  max_open_conns: 20
+  max_idle_conns: 10
+  conn_max_lifetime: "1h"
+
+redis:
+  addr: '127.0.0.1:6379'
+  password: ''
+  db: 1
+  
+jwt:
+  secret: ""
+  issuer: "leslie-blog"
+  expire_hours: 24

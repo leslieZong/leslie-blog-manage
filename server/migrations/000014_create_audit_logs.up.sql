@@ -1,4 +1,4 @@
-CREATE TABLE audit_logs (
+CREATE TABLE  IF NOT EXISTS audit_logs (
     id CHAR(26) NOT NULL,
 
     user_id CHAR(26) DEFAULT NULL,
