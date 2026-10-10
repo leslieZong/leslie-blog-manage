@@ -46,14 +46,42 @@ func TestPostRepository_FindByID(t *testing.T) {
 			actual.ID,
 		)
 	}
-	if post.Category == nil {
+	// Check category
+	if actual.Category == nil {
 		t.Fatal("expected category to be preloaded")
 	}
 
-	if len(post.Tags) != 2 {
+	if actual.Category.ID != post.Category.ID {
+		t.Fatalf(
+			"expected category %s, got %s",
+			post.Category.ID,
+			actual.Category.ID,
+		)
+	}
+	// Check tags
+	if len(actual.Tags) != 2 {
 		t.Fatalf(
 			"expected 2 tags, got %d",
-			len(post.Tags),
+			len(actual.Tags),
+		)
+	}
+	foundGo := false
+	foundGORM := false
+
+	for _, tag := range actual.Tags {
+
+		switch tag.ID {
+		case post.Tags[0].ID:
+			foundGo = true
+
+		case post.Tags[1].ID:
+			foundGORM = true
+		}
+	}
+
+	if !foundGo || !foundGORM {
+		t.Fatal(
+			"expected fixture tags to be preloaded",
 		)
 	}
 	testutil.CleanupPostFixture(t, db, post)
@@ -173,6 +201,7 @@ func TestPostRepository_FindPage(t *testing.T) {
 		context.Background(),
 		PostListQuery{
 			Params: params,
+			// CategoryID: posts[0].Category.ID,
 		},
 	)
 
