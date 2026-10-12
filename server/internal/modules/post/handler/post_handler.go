@@ -251,11 +251,6 @@ func (h *PostHandler) Update(c *gin.Context) error {
 	)
 
 	if err != nil {
-
-		c.JSON(400, gin.H{
-			"message": err.Error(),
-		})
-
 		return err
 	}
 
