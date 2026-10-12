@@ -13,7 +13,7 @@ func main() {
 	// 第一步：加载配置
 	// --------------------------------------------------
 
-	cfg, err := config.Load("configs/config.yaml")
+	cfg, err := config.Load("configs/config.yaml", ".env")
 
 	if err != nil {
 		log.Fatalf(

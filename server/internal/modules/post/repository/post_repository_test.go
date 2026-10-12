@@ -194,7 +194,7 @@ func TestPostRepository_FindPage(t *testing.T) {
 	}
 	var params pagination.Params = pagination.Params{
 		Page:     1,
-		PageSize: 2,
+		PageSize: 10,
 	}
 
 	actual, total, err := repo.FindPage(

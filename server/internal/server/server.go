@@ -2,8 +2,10 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"leslie-blog-server/internal/bootstrap"
 	"leslie-blog-server/internal/config"
@@ -37,10 +39,15 @@ func New(cfg *config.Config) (*bootstrap.Server, error) {
 		os.Exit(1)
 	}
 
+	root, err := config.ProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve project root: %w", err)
+	}
+
 	// 创建 Casbin。
 	enforcer, err := casbin.New(
 		db,
-		"./configs/casbin_model.conf",
+		filepath.Join(root, "configs", "casbin_model.conf"),
 	)
 	if err != nil {
 		log.Error(

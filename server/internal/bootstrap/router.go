@@ -67,6 +67,26 @@ type Server struct {
 	db          *gorm.DB
 	log         *logger.Logger
 	redisClient *redis.Client
+	casbin      *casbin.Enforcer
+	registered  bool
+}
+
+// HTTPHandler 注册所有路由并返回 http.Handler，用于集成测试。
+func (s *Server) HTTPHandler() http.Handler {
+	if !s.registered {
+		s.router.Register()
+		s.registered = true
+	}
+	return s.engine
+}
+func (s *Server) DB() *gorm.DB {
+	return s.db
+}
+func (s *Server) Casbin() *casbin.Enforcer {
+	return s.casbin
+}
+func (s *Server) Config() *config.Config {
+	return s.cfg
 }
 
 func NewRouter(
@@ -287,6 +307,7 @@ func NewRouter(
 		db:          db,
 		log:         log,
 		redisClient: redisClient,
+		casbin:      enforcer,
 	}, nil
 }
 
