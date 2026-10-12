@@ -7,6 +7,7 @@ import (
 	tagmodel "leslie-blog-server/internal/modules/tag/model"
 	usermodel "leslie-blog-server/internal/modules/user/model"
 	"leslie-blog-server/internal/pkg/jwt"
+	"leslie-blog-server/internal/pkg/password"
 	"leslie-blog-server/internal/pkg/ulid"
 	"testing"
 
@@ -27,11 +28,21 @@ func CreateUserFixture(
 
 	t.Helper()
 
+	passwordHash, err := password.Hash(
+		"123456",
+	)
+	if err != nil {
+		t.Fatalf(
+			"hash password failed: %v",
+			err,
+		)
+	}
+
 	user := &usermodel.User{
 		ID:           ulid.New(),
 		Username:     "test-user-" + ulid.New(),
 		Email:        nil,
-		PasswordHash: "$2a$10$8w2.j4Q4hD8v5/zQyMfvAuw5x/yw5x/yw5x/yw5x/yw5x/yw5x/yw5x",
+		PasswordHash: passwordHash,
 		Status:       1,
 		DisplayName:  "Test User",
 		AvatarURL:    "",
@@ -295,79 +306,45 @@ func CreatePostFixtures(
 	return posts
 }
 
+type TestUser struct {
+	User  *usermodel.User
+	Token string
+}
+
 func CreateAdminFixture(
 	t *testing.T,
 	app *TestApplication,
-) *usermodel.User {
+) *TestUser {
 
-	t.Helper()
-
-	user := CreateUserFixture(
+	return CreateUserWithRole(
 		t,
-		app.Server.DB(),
-	)
-
-	if err := app.Server.Casbin().AddRoleForUser(
-		user.ID,
+		app,
 		"admin",
-	); err != nil {
-		t.Fatalf(
-			"assign admin role failed: %v",
-			err,
-		)
-	}
-
-	return user
+	)
 }
 
 func CreateEditorFixture(
 	t *testing.T,
 	app *TestApplication,
-) *usermodel.User {
+) *TestUser {
 
-	t.Helper()
-
-	user := CreateUserFixture(
+	return CreateUserWithRole(
 		t,
-		app.Server.DB(),
-	)
-
-	if err := app.Server.Casbin().AddRoleForUser(
-		user.ID,
+		app,
 		"editor",
-	); err != nil {
-		t.Fatalf(
-			"assign editor role failed: %v",
-			err,
-		)
-	}
-
-	return user
+	)
 }
 
 func CreateViewerFixture(
 	t *testing.T,
 	app *TestApplication,
-) *usermodel.User {
+) *TestUser {
 
-	t.Helper()
-
-	user := CreateUserFixture(
+	return CreateUserWithRole(
 		t,
-		app.Server.DB(),
-	)
-
-	if err := app.Server.Casbin().AddRoleForUser(
-		user.ID,
+		app,
 		"viewer",
-	); err != nil {
-		t.Fatalf(
-			"assign viewer role failed: %v",
-			err,
-		)
-	}
-
-	return user
+	)
 }
 
 func GenerateTestToken(
@@ -394,4 +371,41 @@ func GenerateTestToken(
 	}
 
 	return token
+}
+
+func CreateUserWithRole(
+	t *testing.T,
+	app *TestApplication,
+	role string,
+) *TestUser {
+	t.Helper()
+
+	user := CreateUserFixture(
+		t,
+		app.Server.DB(),
+	)
+
+	err := app.Server.Casbin().AddRoleForUser(
+		user.ID,
+		role,
+	)
+
+	if err != nil {
+		t.Fatalf(
+			"assign role %q failed: %v",
+			role,
+			err,
+		)
+	}
+
+	token := GenerateTestToken(
+		t,
+		app,
+		user,
+	)
+
+	return &TestUser{
+		User:  user,
+		Token: token,
+	}
 }

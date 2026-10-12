@@ -5,6 +5,7 @@ import (
 	"leslie-blog-server/internal/modules/post/dto"
 	"leslie-blog-server/internal/modules/post/model"
 	postmodel "leslie-blog-server/internal/modules/post/model"
+	tagmodel "leslie-blog-server/internal/modules/tag/model"
 	"leslie-blog-server/internal/pkg/ulid"
 	"net/http"
 	"testing"
@@ -73,6 +74,7 @@ func TestPostAPI_Create_Unauthorized(
 			count,
 		)
 	}
+
 }
 
 func TestPostAPI_Create_AdminSuccess(
@@ -107,15 +109,10 @@ func TestPostAPI_Create_AdminSuccess(
 		"gorm-"+ulid.New(),
 	)
 
-	token := GenerateTestToken(
-		t,
-		app,
-		admin,
-	)
-
+	slug := "go-testing-" + ulid.New()
 	body := dto.CreatePostRequest{
 		Title:      "Go Testing",
-		Slug:       "go-testing",
+		Slug:       slug,
 		CategoryID: category.ID,
 		Content:    "# Go Testing",
 		TagIDs:     []string{tag1.ID, tag2.ID},
@@ -129,7 +126,7 @@ func TestPostAPI_Create_AdminSuccess(
 		http.MethodPost,
 		"/api/admin/v1/posts",
 		body,
-		token,
+		admin.Token,
 	)
 
 	// Assert
@@ -154,7 +151,7 @@ func TestPostAPI_Create_AdminSuccess(
 	var post model.Post
 
 	err := app.Server.DB().
-		Where("slug = ?", "go-testing").
+		Where("slug = ?", slug).
 		First(&post).
 		Error
 
@@ -166,10 +163,10 @@ func TestPostAPI_Create_AdminSuccess(
 	}
 
 	// Author 必须来自 JWT 对应的 Actor。
-	if post.AuthorID != admin.ID {
+	if post.AuthorID != admin.User.ID {
 		t.Fatalf(
 			"expected author %s, got %s",
-			admin.ID,
+			admin.User.ID,
 			post.AuthorID,
 		)
 	}
@@ -230,6 +227,23 @@ func TestPostAPI_Create_AdminSuccess(
 		}
 	}
 
+	t.Cleanup(func() {
+		CleanupPostFixture(t, app.Server.DB(), &PostFixture{
+			Post:     &post,
+			Tags:     []*tagmodel.Tag{tag1, tag2},
+			Category: category,
+			User:     admin.User,
+		})
+	})
+
+	t.Cleanup(func() {
+		if err := app.Close(); err != nil {
+			t.Logf(
+				"close test application failed: %v",
+				err,
+			)
+		}
+	})
 }
 
 func TestPostAPI_Create_InvalidToken(t *testing.T) {
@@ -294,6 +308,7 @@ func TestPostAPI_Create_InvalidToken(t *testing.T) {
 		)
 	}
 }
+
 func TestPostAPI_Create_ErrForbidden(t *testing.T) {
 	// Arrange
 	app := NewTestApplication(t)
@@ -324,12 +339,6 @@ func TestPostAPI_Create_ErrForbidden(t *testing.T) {
 		"gorm-"+ulid.New(),
 	)
 
-	token := GenerateTestToken(
-		t,
-		app,
-		viewer,
-	)
-
 	body := dto.CreatePostRequest{
 		Title:      "Go Testing",
 		Slug:       "go-testing",
@@ -346,7 +355,7 @@ func TestPostAPI_Create_ErrForbidden(t *testing.T) {
 		http.MethodPost,
 		"/api/admin/v1/posts",
 		body,
-		token,
+		viewer.Token,
 	)
 
 	// Assert
@@ -427,12 +436,6 @@ func TestPostAPI_Create_InvalidParams(
 		"gorm-"+ulid.New(),
 	)
 
-	token := GenerateTestToken(
-		t,
-		app,
-		admin,
-	)
-
 	slug := "invalid-post-" + ulid.New()
 	body := dto.CreatePostRequest{
 		Title:      "",
@@ -450,7 +453,7 @@ func TestPostAPI_Create_InvalidParams(
 		http.MethodPost,
 		"/api/admin/v1/posts",
 		body,
-		token,
+		admin.Token,
 	)
 
 	// Assert
@@ -499,6 +502,7 @@ func TestPostAPI_Create_InvalidParams(
 	}
 
 }
+
 func TestPostAPI_Create_SameSlug(
 	t *testing.T,
 ) {
@@ -530,13 +534,6 @@ func TestPostAPI_Create_SameSlug(
 		"GORM-"+ulid.New(),
 		"gorm-"+ulid.New(),
 	)
-
-	token := GenerateTestToken(
-		t,
-		app,
-		admin,
-	)
-
 	slug := "go-testing"
 	body := dto.CreatePostRequest{
 		Title:      "Same Post",
@@ -554,7 +551,7 @@ func TestPostAPI_Create_SameSlug(
 		http.MethodPost,
 		"/api/admin/v1/posts",
 		body,
-		token,
+		admin.Token,
 	)
 
 	// Assert
@@ -615,12 +612,6 @@ func TestPostAPI_Update_NotFound(
 		app,
 	)
 
-	token := GenerateTestToken(
-		t,
-		app,
-		admin,
-	)
-
 	// Act
 	resp := DoJSONRequest(
 		t,
@@ -628,7 +619,7 @@ func TestPostAPI_Update_NotFound(
 		http.MethodGet,
 		"/api/admin/v1/posts/not-exists",
 		nil,
-		token,
+		admin.Token,
 	)
 
 	// Assert
@@ -686,12 +677,6 @@ func TestPostAPI_Update_NonOwnerForbidden(
 		"gorm-"+ulid.New(),
 	)
 
-	token := GenerateTestToken(
-		t,
-		app,
-		user,
-	)
-
 	slug := "go-testing-" + ulid.New()
 	body := dto.CreatePostRequest{
 		Title:      "Go Testing-" + ulid.New(),
@@ -709,7 +694,7 @@ func TestPostAPI_Update_NonOwnerForbidden(
 		http.MethodPost,
 		"/api/admin/v1/posts",
 		body,
-		token,
+		user.Token,
 	)
 
 	// Assert
@@ -750,11 +735,6 @@ func TestPostAPI_Update_NonOwnerForbidden(
 		app,
 	)
 
-	token = GenerateTestToken(
-		t,
-		app,
-		otherUser,
-	)
 	request := map[string]any{
 		"title": "Hacked Title",
 	}
@@ -765,7 +745,7 @@ func TestPostAPI_Update_NonOwnerForbidden(
 		http.MethodPut,
 		"/api/admin/v1/posts/"+post.ID,
 		request,
-		token,
+		otherUser.Token,
 	)
 
 	AssertStatus(
@@ -794,5 +774,163 @@ func TestPostAPI_Update_NonOwnerForbidden(
 			originalTitle,
 			updated.Title,
 		)
+	}
+}
+
+type createPostActor string
+
+const (
+	createPostActorNone    createPostActor = "none"
+	createPostActorAdmin   createPostActor = "admin"
+	createPostActorViewer  createPostActor = "viewer"
+	createPostActorInvalid createPostActor = "invalid"
+)
+
+type createPostTestCase struct {
+	name  string
+	actor createPostActor
+
+	request dto.CreatePostRequest
+
+	expectedStatus int
+	expectedCode   int
+
+	expectCreated bool
+}
+
+func TestPostAPI_Create(t *testing.T) {
+	app := NewTestApplication(t)
+
+	category := CreateCategoryFixture(
+		t,
+		app.Server.DB(),
+	)
+
+	admin := CreateAdminFixture(
+		t,
+		app,
+	)
+
+	viewer := CreateViewerFixture(
+		t,
+		app,
+	)
+
+	tokens := map[createPostActor]string{
+		createPostActorAdmin:   admin.Token,
+		createPostActorViewer:  viewer.Token,
+		createPostActorInvalid: "invalid-token",
+		createPostActorNone:    "",
+	}
+
+	tests := []createPostTestCase{
+		{
+			name:  "admin success",
+			actor: createPostActorAdmin,
+
+			request: dto.CreatePostRequest{
+				Title:      "Go Testing",
+				Slug:       "go-testing-admin-" + ulid.New(),
+				CategoryID: category.ID,
+				Content:    "# Go Testing",
+			},
+
+			expectedStatus: http.StatusOK,
+			expectedCode:   0,
+			expectCreated:  true,
+		},
+
+		{
+			name:  "viewer forbidden",
+			actor: createPostActorViewer,
+
+			request: dto.CreatePostRequest{
+				Title:      "Viewer Post",
+				Slug:       "viewer-post-" + ulid.New(),
+				CategoryID: category.ID,
+				Content:    "# Viewer",
+			},
+
+			expectedStatus: http.StatusForbidden,
+			expectedCode:   int(appErrors.ErrForbidden),
+		},
+
+		{
+			name:  "invalid token",
+			actor: createPostActorInvalid,
+
+			request: dto.CreatePostRequest{
+				Title:      "Invalid Token",
+				Slug:       "invalid-token-post-" + ulid.New(),
+				CategoryID: category.ID,
+				Content:    "# Invalid",
+			},
+
+			expectedStatus: http.StatusUnauthorized,
+			expectedCode:   int(appErrors.ErrUnauthorized),
+		},
+
+		{
+			name:  "without token",
+			actor: createPostActorNone,
+
+			request: dto.CreatePostRequest{
+				Title:      "No Token",
+				Slug:       "no-token-post-" + ulid.New(),
+				CategoryID: category.ID,
+				Content:    "# No Token",
+			},
+
+			expectedStatus: http.StatusUnauthorized,
+			expectedCode:   int(appErrors.ErrUnauthorized),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			token := tokens[tt.actor]
+
+			response := DoJSONRequest(
+				t,
+				app.Server.HTTPHandler(),
+				http.MethodPost,
+				"/api/admin/v1/posts",
+				tt.request,
+				token,
+			)
+
+			AssertStatus(
+				t,
+				response,
+				tt.expectedStatus,
+			)
+
+			apiResponse := DecodeAPIResponse(
+				t,
+				response,
+			)
+
+			if apiResponse.Code != tt.expectedCode {
+				t.Fatalf(
+					"expected code %d, got %d",
+					tt.expectedCode,
+					apiResponse.Code,
+				)
+			}
+
+			if tt.expectCreated {
+				assertPostCreated(
+					t,
+					app.Server.DB(),
+					tt.request.Slug,
+				)
+			} else {
+				assertPostNotCreated(
+					t,
+					app.Server.DB(),
+					tt.request.Slug,
+				)
+			}
+		})
 	}
 }

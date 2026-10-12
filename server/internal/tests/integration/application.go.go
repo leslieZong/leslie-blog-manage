@@ -9,6 +9,7 @@ import (
 
 type TestApplication struct {
 	*bootstrap.Server
+	Close func() error
 }
 
 func loadTestConfig(t *testing.T) *config.Config {
@@ -22,14 +23,37 @@ func loadTestConfig(t *testing.T) *config.Config {
 		)
 	}
 
+	validateTestEnvironment(t, cfg)
+
+	return cfg
+}
+func validateTestEnvironment(
+	t *testing.T,
+	cfg *config.Config,
+) {
+	t.Helper()
+
 	if cfg.App.Env != "test" {
 		t.Fatalf(
-			"refuse to run integration test with env=%q",
+			"refuse to run integration tests with env=%q",
 			cfg.App.Env,
 		)
 	}
 
-	return cfg
+	if cfg.MySQL.Database != "leslie_blog_test" {
+		t.Fatalf(
+			"refuse to run integration tests with mysql database=%q",
+			cfg.MySQL.Database,
+		)
+	}
+
+	if cfg.Redis.DB != 1 {
+		t.Fatalf(
+			"refuse to run integration tests with redis db=%d",
+			cfg.Redis.DB,
+		)
+	}
+
 }
 
 func NewTestApplication(t *testing.T) *TestApplication {
@@ -45,5 +69,6 @@ func NewTestApplication(t *testing.T) *TestApplication {
 
 	return &TestApplication{
 		Server: srv,
+		Close:  srv.Close,
 	}
 }

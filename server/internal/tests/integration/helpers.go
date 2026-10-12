@@ -3,9 +3,12 @@ package integration
 import (
 	"bytes"
 	"encoding/json"
+	postmodel "leslie-blog-server/internal/modules/post/model"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"gorm.io/gorm"
 )
 
 type APIResponse struct {
@@ -108,4 +111,58 @@ func AssertStatus(
 			recorder.Body.String(),
 		)
 	}
+}
+
+func assertPostCreated(
+	t *testing.T,
+	db *gorm.DB,
+	slug string,
+) {
+	t.Helper()
+
+	var post postmodel.Post
+
+	err := db.
+		Where("slug = ?", slug).
+		First(&post).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"expected post to exist: %v",
+			err,
+		)
+	}
+}
+
+func assertPostNotCreated(
+	t *testing.T,
+	db *gorm.DB,
+	slug string,
+) {
+	t.Helper()
+
+	var count int64
+
+	err := db.
+		Model(&postmodel.Post{}).
+		Where("slug = ?", slug).
+		Count(&count).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"count posts failed: %v",
+			err,
+		)
+	}
+
+	if count != 0 {
+		t.Fatalf(
+			"expected no post with slug %q, got %d",
+			slug,
+			count,
+		)
+	}
+
 }

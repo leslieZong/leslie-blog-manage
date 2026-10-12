@@ -411,6 +411,10 @@ func (s *Server) Run() error {
 			slog.Any("error", err),
 		)
 	}
+	s.Close()
+	return nil
+}
+func (s *Server) Close() error {
 
 	// ------------------------------------------------
 	// 11. 关闭 Redis
