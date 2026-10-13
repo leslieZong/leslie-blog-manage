@@ -88,6 +88,7 @@ type PostService interface {
 		summary *string,
 		content string,
 		cover *string,
+		featured bool,
 	) (*model.Post, error)
 
 	// Delete 删除文章。
@@ -687,6 +688,7 @@ func (s *postService) Update(
 	summary *string,
 	content string,
 	cover *string,
+	featured bool,
 ) (*model.Post, error) {
 
 	// --------------------------------------------------
@@ -797,6 +799,7 @@ func (s *postService) Update(
 	post.Content = content
 	post.Cover = cover
 	post.CategoryID = categoryID
+	post.Featured = featured
 
 	// 注意：
 	//

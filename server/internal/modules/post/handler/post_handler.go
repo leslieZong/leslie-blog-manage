@@ -248,6 +248,7 @@ func (h *PostHandler) Update(c *gin.Context) error {
 		req.Summary,
 		req.Content,
 		req.Cover,
+		req.Featured,
 	)
 
 	if err != nil {

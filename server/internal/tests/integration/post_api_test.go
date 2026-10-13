@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"errors"
 	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/post/dto"
 	"leslie-blog-server/internal/modules/post/model"
@@ -9,6 +10,8 @@ import (
 	"leslie-blog-server/internal/pkg/ulid"
 	"net/http"
 	"testing"
+
+	"gorm.io/gorm"
 )
 
 func TestPostAPI_Create_Unauthorized(
@@ -994,6 +997,334 @@ func TestPostAPI_Create_InvalidCategory(t *testing.T) {
 		t.Fatalf(
 			"expected no post to be created, got %d",
 			count,
+		)
+	}
+}
+
+func TestPostAPI_Update_OwnerSuccess(t *testing.T) {
+	app := NewTestApplication(t)
+	editorA := CreateEditorFixture(
+		t,
+		app,
+	)
+	category := CreateCategoryFixture(
+		t,
+		app.Server.DB(),
+	)
+	tag1 := CreateTagFixture(
+		t,
+		app.Server.DB(),
+		ulid.New(),
+		"Go-"+ulid.New(),
+		"go-"+ulid.New(),
+	)
+
+	tag2 := CreateTagFixture(
+		t,
+		app.Server.DB(),
+		ulid.New(),
+		"GORM-"+ulid.New(),
+		"gorm-"+ulid.New(),
+	)
+	post := CreatePostFixture(
+		t,
+		app.Server.DB(),
+		editorA.User,
+		category,
+	)
+	request := dto.UpdatePostRequest{
+		Title:      "Updated Go Article",
+		Slug:       post.Slug + "-updated",
+		CategoryID: category.ID,
+		TagIDs: []string{
+			tag1.ID,
+			tag2.ID,
+		},
+		Content:  "# Updated Content",
+		Featured: true,
+	}
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPut,
+		"/api/admin/v1/posts/"+post.ID,
+		request,
+		editorA.Token,
+	)
+	AssertStatus(
+		t,
+		response,
+		http.StatusOK,
+	)
+
+	var updated postmodel.Post
+
+	err := app.Server.DB().
+		Where("id = ?", post.ID).
+		First(&updated).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"query updated post failed: %v",
+			err,
+		)
+	}
+	if updated.Title != request.Title {
+		t.Fatalf(
+			"expected title %q, got %q",
+			request.Title,
+			updated.Title,
+		)
+	}
+
+	if updated.Content != request.Content {
+		t.Fatalf(
+			"expected content %q, got %q",
+			request.Content,
+			updated.Content,
+		)
+	}
+	if updated.CategoryID != category.ID {
+		t.Fatalf(
+			"expected category %q, got %q",
+			category.ID,
+			updated.CategoryID,
+		)
+	}
+	if !updated.Featured {
+		t.Fatal("expected post to be featured")
+	}
+
+	var relations []postmodel.PostTag
+
+	err = app.Server.DB().
+		Where("post_id = ?", post.ID).
+		Find(&relations).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"query post tags failed: %v",
+			err,
+		)
+	}
+	if len(relations) != 2 {
+		t.Fatalf(
+			"expected 2 post tags, got %d",
+			len(relations),
+		)
+	}
+	actualTagIDs := map[string]bool{}
+
+	for _, relation := range relations {
+		actualTagIDs[relation.TagID] = true
+	}
+
+	if !actualTagIDs[tag1.ID] {
+		t.Fatalf(
+			"expected tag %s",
+			tag1.ID,
+		)
+	}
+
+	if !actualTagIDs[tag2.ID] {
+		t.Fatalf(
+			"expected tag %s",
+			tag2.ID,
+		)
+	}
+}
+
+func TestPostAPI_Update_AdminSuccess(t *testing.T) {
+	app := NewTestApplication(t)
+
+	admin := CreateAdminFixture(t, app)
+	owner := CreateEditorFixture(t, app)
+
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreatePostFixture(
+		t,
+		app.Server.DB(),
+		owner.User,
+		category,
+	)
+
+	request := dto.UpdatePostRequest{
+		Title:      "Admin Updated Post",
+		Slug:       post.Slug + "-admin-update",
+		CategoryID: category.ID,
+		Content:    "# Updated By Admin",
+		Featured:   true,
+	}
+
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPut,
+		"/api/admin/v1/posts/"+post.ID,
+		request,
+		admin.Token,
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusOK,
+	)
+	var updated postmodel.Post
+
+	err := app.Server.DB().
+		Where("id = ?", post.ID).
+		First(&updated).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"query updated post failed: %v",
+			err,
+		)
+	}
+	if updated.Title != request.Title {
+		t.Fatalf(
+			"expected title %q, got %q",
+			request.Title,
+			updated.Title,
+		)
+	}
+
+	if updated.Content != request.Content {
+		t.Fatalf(
+			"expected content %q, got %q",
+			request.Content,
+			updated.Content,
+		)
+	}
+	if updated.CategoryID != category.ID {
+		t.Fatalf(
+			"expected category %q, got %q",
+			category.ID,
+			updated.CategoryID,
+		)
+	}
+	if !updated.Featured {
+		t.Fatal("expected post to be featured")
+	}
+	if updated.Slug != request.Slug {
+		t.Fatalf(
+			"expected slug %q, got %q",
+			request.Slug,
+			updated.Slug,
+		)
+	}
+
+}
+
+func TestPostAPI_Update_ViewerForbidden(t *testing.T) {
+	app := NewTestApplication(t)
+
+	owner := CreateEditorFixture(t, app)
+	viewer := CreateViewerFixture(t, app)
+
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreatePostFixture(
+		t,
+		app.Server.DB(),
+		owner.User,
+		category,
+	)
+
+	request := dto.UpdatePostRequest{
+		Title:   "Should Not Update",
+		Content: "forbidden",
+	}
+
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPut,
+		"/api/admin/v1/posts/"+post.ID,
+		request,
+		viewer.Token,
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusForbidden,
+	)
+	var updated model.Post
+
+	err := app.Server.DB().
+		Where("id = ?", post.ID).
+		First(&updated).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"query post failed: %v",
+			err,
+		)
+	}
+	originalTitle := post.Title
+	if updated.Title != originalTitle {
+		t.Fatalf(
+			"post should not be modified, expected %q, got %q",
+			originalTitle,
+			updated.Title,
+		)
+	}
+}
+
+func TestPostAPI_Delete_DeleteSuccess(t *testing.T) {
+	app := NewTestApplication(t)
+	admin := CreateAdminFixture(t, app)
+	category := CreateCategoryFixture(t, app.Server.DB())
+	post := CreatePostFixture(
+		t,
+		app.Server.DB(),
+		admin.User,
+		category,
+	)
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodDelete,
+		"/api/admin/v1/posts/"+post.ID,
+		nil,
+		admin.Token,
+	)
+	AssertStatus(
+		t,
+		response,
+		http.StatusOK,
+	)
+
+	err := app.Server.DB().
+		Where("id = ?", post.ID).
+		First(&model.Post{}).
+		Error
+
+	if err == nil {
+		t.Fatalf(
+			"post should be deleted, but not found",
+		)
+	}
+	if !errors.Is(
+		err,
+		gorm.ErrRecordNotFound,
+	) {
+		t.Fatalf(
+			"expected record not found after delete, got %v",
+			err,
+		)
+	}
+	if len(post.Tags) != 0 {
+		t.Fatalf(
+			"expected no tags after delete, got %d",
+			len(post.Tags),
 		)
 	}
 }

@@ -131,6 +131,7 @@ func CreatePostFixture(
 		Status:     string(postmodel.PostStatusDraft),
 		AuthorID:   user.ID,
 		CategoryID: category.ID,
+		Featured:   false,
 	}
 
 	if err := db.Create(post).Error; err != nil {
