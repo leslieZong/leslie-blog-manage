@@ -62,7 +62,7 @@ func RegisterRoutes(
 	posts.DELETE(
 		"/:id",
 		middleware.Permission(enforcer, permission.PostDelete),
-		postHandler.Delete,
+		httpx.Adapt(postHandler.Delete),
 	)
 
 	// 发布文章。

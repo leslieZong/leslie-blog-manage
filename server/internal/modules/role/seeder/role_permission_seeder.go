@@ -68,6 +68,7 @@ var defaultRolePermissions = map[string][]string{
 		"post:read",
 		"post:create",
 		"post:update",
+		"post:delete",
 		"post:publish",
 		"post:archive",
 

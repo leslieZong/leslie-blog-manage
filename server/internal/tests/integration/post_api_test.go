@@ -1654,3 +1654,84 @@ func TestPostAPI_Archive_AlreadyArchived(t *testing.T) {
 		http.StatusBadRequest,
 	)
 }
+
+func TestPostAPI_Delete_OwnerSuccess(t *testing.T) {
+	app := NewTestApplication(t)
+
+	editor := CreateEditorFixture(t, app)
+
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreatePostFixture(
+		t,
+		app.Server.DB(),
+		editor.User,
+		category,
+	)
+
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodDelete,
+		"/api/admin/v1/posts/"+post.ID,
+		nil,
+		editor.Token,
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusOK,
+	)
+	var deletedPost postmodel.Post
+
+	err := app.Server.DB().
+		Where("id = ?", post.ID).
+		First(&deletedPost).
+		Error
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf(
+			"expected post to be hidden after soft delete, got err=%v",
+			err,
+		)
+	}
+
+	var deletedPost2 postmodel.Post
+
+	err = app.Server.DB().
+		Unscoped().
+		Where("id = ?", post.ID).
+		First(&deletedPost2).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"expected soft-deleted post to still exist: %v",
+			err,
+		)
+	}
+	if deletedPost2.DeletedAt.Time.IsZero() {
+		t.Fatal("expected deleted_at to be set")
+	}
+
+	var relations []postmodel.PostTag
+
+	err = app.Server.DB().
+		Where("post_id = ?", post.ID).
+		Find(&relations).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"query post tags failed: %v",
+			err,
+		)
+	}
+	if len(relations) != 0 {
+		t.Fatalf(
+			"expected post tags to be deleted, got %d",
+			len(relations),
+		)
+	}
+}

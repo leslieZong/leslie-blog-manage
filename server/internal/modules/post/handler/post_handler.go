@@ -272,14 +272,13 @@ func (h *PostHandler) Update(c *gin.Context) error {
 // Delete 删除文章。
 //
 // 当前是软删除。
-func (h *PostHandler) Delete(c *gin.Context) {
+func (h *PostHandler) Delete(c *gin.Context) error {
 
 	id := c.Param("id")
 	userID := auth.GetUserID(c)
 	roles, err := h.enforcer.GetRolesForUser(userID)
 	if err != nil {
-		response.AppError(c, err)
-		return
+		return err
 	}
 	actor := auth.Actor{
 		UserID:  userID,
@@ -290,14 +289,11 @@ func (h *PostHandler) Delete(c *gin.Context) {
 
 	if err := h.service.Delete(ctx, actor, id); err != nil {
 
-		c.JSON(400, gin.H{
-			"message": err.Error(),
-		})
-
-		return
+		return err
 	}
 
 	response.Success(c, nil)
+	return nil
 }
 
 // Publish 发布文章。
