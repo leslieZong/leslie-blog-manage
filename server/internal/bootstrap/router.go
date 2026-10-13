@@ -61,14 +61,15 @@ import (
 
 // Server 表示 Leslie Blog API Server。
 type Server struct {
-	cfg         *config.Config
-	engine      *gin.Engine
-	router      *router.Router
-	db          *gorm.DB
-	log         *logger.Logger
-	redisClient *redis.Client
-	casbin      *casbin.Enforcer
-	registered  bool
+	cfg                *config.Config
+	engine             *gin.Engine
+	router             *router.Router
+	db                 *gorm.DB
+	log                *logger.Logger
+	redisClient        *redis.Client
+	casbin             *casbin.Enforcer
+	transactionManager *pkgDatabase.TransactionManager
+	registered         bool
 }
 
 // HTTPHandler 注册所有路由并返回 http.Handler，用于集成测试。
@@ -87,6 +88,9 @@ func (s *Server) Casbin() *casbin.Enforcer {
 }
 func (s *Server) Config() *config.Config {
 	return s.cfg
+}
+func (s *Server) TransactionManager() *pkgDatabase.TransactionManager {
+	return s.transactionManager
 }
 
 func NewRouter(
@@ -172,12 +176,13 @@ func NewRouter(
 		tagRepo,
 	)
 
+	transactionManager := pkgDatabase.NewTransactionManager(db)
 	postSvc := postService.NewPostService(
 		postRepo,
 		postTagRepo,
 		categoryRepo,
 		tagSvc,
-		pkgDatabase.NewTransactionManager(db),
+		transactionManager,
 		cacheStore,
 		log,
 		auditRecorder,
@@ -196,7 +201,7 @@ func NewRouter(
 	projectSvc := projectService.NewProjectService(
 		projectRepo,
 		techStackRepo,
-		pkgDatabase.NewTransactionManager(db),
+		transactionManager,
 		cacheStore,
 		log,
 	)
@@ -301,13 +306,14 @@ func NewRouter(
 		enforcer,
 	)
 	return &Server{
-		cfg:         cfg,
-		engine:      engine,
-		router:      r,
-		db:          db,
-		log:         log,
-		redisClient: redisClient,
-		casbin:      enforcer,
+		cfg:                cfg,
+		engine:             engine,
+		router:             r,
+		db:                 db,
+		log:                log,
+		redisClient:        redisClient,
+		casbin:             enforcer,
+		transactionManager: transactionManager,
 	}, nil
 }
 

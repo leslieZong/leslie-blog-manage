@@ -934,3 +934,66 @@ func TestPostAPI_Create(t *testing.T) {
 		})
 	}
 }
+
+func TestPostAPI_Create_InvalidCategory(t *testing.T) {
+	app := NewTestApplication(t)
+	admin := CreateAdminFixture(
+		t,
+		app,
+	)
+	categoryID := "01INVALIDCATEGORYID"
+
+	request := dto.CreatePostRequest{
+		Title:      "Invalid Category",
+		Slug:       "invalid-category-post-" + ulid.New(),
+		CategoryID: categoryID,
+		Content:    "# Invalid Category",
+	}
+
+	resp := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPost,
+		"/api/admin/v1/posts",
+		request,
+		admin.Token,
+	)
+	AssertStatus(
+		t,
+		resp,
+		http.StatusBadRequest,
+	)
+	apiResponse := DecodeAPIResponse(
+		t,
+		resp,
+	)
+	if apiResponse.Code != int(appErrors.ErrCategoryNotFound) {
+		t.Fatalf(
+			"expected code %d, got %d",
+			int(appErrors.ErrCategoryNotFound),
+			apiResponse.Code,
+		)
+	}
+
+	var count int64
+
+	err := app.Server.DB().
+		Model(&model.Post{}).
+		Where("slug = ?", request.Slug).
+		Count(&count).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"count post failed: %v",
+			err,
+		)
+	}
+
+	if count != 0 {
+		t.Fatalf(
+			"expected no post to be created, got %d",
+			count,
+		)
+	}
+}
