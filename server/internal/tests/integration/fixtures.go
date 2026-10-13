@@ -10,6 +10,7 @@ import (
 	"leslie-blog-server/internal/pkg/password"
 	"leslie-blog-server/internal/pkg/ulid"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -132,6 +133,72 @@ func CreatePostFixture(
 		AuthorID:   user.ID,
 		CategoryID: category.ID,
 		Featured:   false,
+	}
+
+	if err := db.Create(post).Error; err != nil {
+		t.Fatalf(
+			"create test post failed: %v",
+			err,
+		)
+	}
+
+	return post
+}
+func CreateArchivedPostFixture(
+	t *testing.T,
+	db *gorm.DB,
+	user *usermodel.User,
+	category *categorymodel.Category,
+) *postmodel.Post {
+
+	t.Helper()
+
+	publishedAt := time.Now()
+	post := &postmodel.Post{
+		ID:          ulid.New(),
+		Title:       "Test Post-" + ulid.New(),
+		Slug:        "test-post-" + ulid.New(),
+		Content:     "test content-" + ulid.New(),
+		Summary:     nil,
+		Cover:       nil,
+		Status:      string(postmodel.PostStatusArchived),
+		AuthorID:    user.ID,
+		CategoryID:  category.ID,
+		Featured:    false,
+		PublishedAt: &publishedAt,
+	}
+
+	if err := db.Create(post).Error; err != nil {
+		t.Fatalf(
+			"create test post failed: %v",
+			err,
+		)
+	}
+
+	return post
+}
+func CreatePublishedPostFixture(
+	t *testing.T,
+	db *gorm.DB,
+	user *usermodel.User,
+	category *categorymodel.Category,
+) *postmodel.Post {
+
+	t.Helper()
+
+	publishedAt := time.Now()
+	post := &postmodel.Post{
+		ID:          ulid.New(),
+		Title:       "Test Post-" + ulid.New(),
+		Slug:        "test-post-" + ulid.New(),
+		Content:     "test content-" + ulid.New(),
+		Summary:     nil,
+		Cover:       nil,
+		Status:      string(postmodel.PostStatusPublished),
+		AuthorID:    user.ID,
+		CategoryID:  category.ID,
+		Featured:    false,
+		PublishedAt: &publishedAt,
 	}
 
 	if err := db.Create(post).Error; err != nil {

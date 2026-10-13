@@ -69,13 +69,13 @@ func RegisterRoutes(
 	posts.POST(
 		"/:id/publish",
 		middleware.Permission(enforcer, permission.PostPublish),
-		postHandler.Publish,
+		httpx.Adapt(postHandler.Publish),
 	)
 
 	// 归档文章。
 	posts.POST(
 		"/:id/archive",
 		middleware.Permission(enforcer, permission.PostUpdate),
-		postHandler.Archive,
+		httpx.Adapt(postHandler.Archive),
 	)
 }

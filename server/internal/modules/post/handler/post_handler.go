@@ -301,14 +301,13 @@ func (h *PostHandler) Delete(c *gin.Context) {
 }
 
 // Publish 发布文章。
-func (h *PostHandler) Publish(c *gin.Context) {
+func (h *PostHandler) Publish(c *gin.Context) error {
 
 	id := c.Param("id")
 	userID := auth.GetUserID(c)
 	roles, err := h.enforcer.GetRolesForUser(userID)
 	if err != nil {
-		response.AppError(c, err)
-		return
+		return err
 	}
 
 	actor := auth.Actor{
@@ -321,21 +320,17 @@ func (h *PostHandler) Publish(c *gin.Context) {
 	post, err := h.service.Publish(ctx, actor, id)
 
 	if err != nil {
-
-		c.JSON(400, gin.H{
-			"message": err.Error(),
-		})
-
-		return
+		return err
 	}
 
 	res := dto.FromModel(post)
 
 	response.Success(c, res)
+	return nil
 }
 
 // GetBySlug 根据 slug 获取文章。
-func (h *PostHandler) GetBySlug(c *gin.Context) {
+func (h *PostHandler) GetBySlug(c *gin.Context) error {
 
 	slug := c.Param("slug")
 
@@ -344,27 +339,22 @@ func (h *PostHandler) GetBySlug(c *gin.Context) {
 	post, err := h.service.GetBySlug(ctx, slug)
 
 	if err != nil {
-
-		c.JSON(404, gin.H{
-			"message": "文章不存在",
-		})
-
-		return
+		return err
 	}
 
 	res := dto.FromModel(post)
 
 	response.Success(c, res)
+	return nil
 }
 
 // Archive 归档文章。
-func (h *PostHandler) Archive(c *gin.Context) {
+func (h *PostHandler) Archive(c *gin.Context) error {
 	id := c.Param("id")
 	userID := auth.GetUserID(c)
 	roles, err := h.enforcer.GetRolesForUser(userID)
 	if err != nil {
-		response.AppError(c, err)
-		return
+		return err
 	}
 	actor := auth.Actor{
 		UserID:  userID,
@@ -377,8 +367,8 @@ func (h *PostHandler) Archive(c *gin.Context) {
 		id,
 	)
 	if err != nil {
-		response.AppError(c, err)
-		return
+		return err
 	}
 	response.Success(c, dto.FromModel(post))
+	return nil
 }

@@ -131,7 +131,7 @@ func TestPostAPI_Create_RollbackPost(t *testing.T) {
 
 			postTag2 := &postmodel.PostTag{
 				PostID: post.ID,
-				TagID:  ulid.New(), // 不存在的TagID
+				TagID:  "不存在的TagID", // 不存在的TagID
 			}
 
 			if err := tx.Create(postTag2).Error; err != nil {

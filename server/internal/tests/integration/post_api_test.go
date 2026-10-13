@@ -1328,3 +1328,329 @@ func TestPostAPI_Delete_DeleteSuccess(t *testing.T) {
 		)
 	}
 }
+
+func TestPostAPI_Publish_OwnerSuccess(t *testing.T) {
+	app := NewTestApplication(t)
+
+	editor := CreateEditorFixture(t, app)
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreatePostFixture(
+		t,
+		app.Server.DB(),
+		editor.User,
+		category,
+	)
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPost,
+		"/api/admin/v1/posts/"+post.ID+"/publish",
+		nil,
+		editor.Token,
+	)
+	AssertStatus(
+		t,
+		response,
+		http.StatusOK,
+	)
+
+	var actual postmodel.Post
+
+	err := app.Server.DB().
+		Where("id = ?", post.ID).
+		First(&actual).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"query post failed: %v",
+			err,
+		)
+	}
+	if actual.Status != string(postmodel.PostStatusPublished) {
+		t.Fatalf(
+			"expected status %q, got %q",
+			string(postmodel.PostStatusPublished),
+			actual.Status,
+		)
+	}
+	if actual.PublishedAt == nil {
+		t.Fatal("expected published_at to be set")
+	}
+
+	// if !actual.CreatedAt.Equal(post.CreatedAt) {
+	// 	t.Fatal("publish should not change created_at")
+	// }
+}
+
+func TestPostAPI_Publish_AlreadyPublished(t *testing.T) {
+	app := NewTestApplication(t)
+
+	editor := CreateEditorFixture(t, app)
+
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreatePostFixture(
+		t,
+		app.Server.DB(),
+		editor.User,
+		category,
+	)
+
+	// 第一次 Publish
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPost,
+		"/api/admin/v1/posts/"+post.ID+"/publish",
+		nil,
+		editor.Token,
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusOK,
+	)
+
+	// 第二次 Publish
+	response = DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPost,
+		"/api/admin/v1/posts/"+post.ID+"/publish",
+		nil,
+		editor.Token,
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusConflict,
+	)
+}
+
+func TestPostAPI_Publish_OtherEditorForbidden(t *testing.T) {
+	app := NewTestApplication(t)
+
+	owner := CreateEditorFixture(t, app)
+	otherEditor := CreateEditorFixture(t, app)
+
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreatePostFixture(
+		t,
+		app.Server.DB(),
+		owner.User,
+		category,
+	)
+
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPost,
+		"/api/admin/v1/posts/"+post.ID+"/publish",
+		nil,
+		otherEditor.Token,
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusForbidden,
+	)
+
+	var actual postmodel.Post
+
+	err := app.Server.DB().
+		Where("id = ?", post.ID).
+		First(&actual).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"query post failed: %v",
+			err,
+		)
+	}
+
+	if actual.Status != string(postmodel.PostStatusDraft) {
+		t.Fatalf(
+			"post should remain draft, got %q",
+			actual.Status,
+		)
+	}
+}
+
+func TestPostAPI_Publish_AdminSuccess(t *testing.T) {
+	app := NewTestApplication(t)
+
+	admin := CreateAdminFixture(t, app)
+	owner := CreateEditorFixture(t, app)
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreatePostFixture(
+		t,
+		app.Server.DB(),
+		owner.User,
+		category,
+	)
+
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPost,
+		"/api/admin/v1/posts/"+post.ID+"/publish",
+		nil,
+		admin.Token,
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusOK,
+	)
+}
+
+func TestPostAPI_Publish_ViewerForbidden(t *testing.T) {
+	app := NewTestApplication(t)
+
+	owner := CreateEditorFixture(t, app)
+	viewer := CreateViewerFixture(t, app)
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreatePostFixture(
+		t,
+		app.Server.DB(),
+		owner.User,
+		category,
+	)
+
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPost,
+		"/api/admin/v1/posts/"+post.ID+"/publish",
+		nil,
+		viewer.Token,
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusForbidden,
+	)
+}
+
+func TestPostAPI_Archive_OwnerSuccess(t *testing.T) {
+	app := NewTestApplication(t)
+
+	editor := CreateEditorFixture(t, app)
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreatePublishedPostFixture(
+		t,
+		app.Server.DB(),
+		editor.User,
+		category,
+	)
+
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPost,
+		"/api/admin/v1/posts/"+post.ID+"/archive",
+		nil,
+		editor.Token,
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusOK,
+	)
+
+	var actual postmodel.Post
+
+	err := app.Server.DB().
+		Where("id = ?", post.ID).
+		First(&actual).
+		Error
+
+	if err != nil {
+		t.Fatalf(
+			"query post failed: %v",
+			err,
+		)
+	}
+
+	if actual.Status != string(postmodel.PostStatusArchived) {
+		t.Fatalf(
+			"expected archived, got %q",
+			actual.Status,
+		)
+	}
+	if actual.PublishedAt == nil {
+		t.Fatal("archive should not clear published_at")
+	}
+
+}
+
+func TestPostAPI_Publish_ArchivedForbidden(t *testing.T) {
+	app := NewTestApplication(t)
+
+	editor := CreateEditorFixture(t, app)
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreateArchivedPostFixture(
+		t,
+		app.Server.DB(),
+		editor.User,
+		category,
+	)
+
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPost,
+		"/api/admin/v1/posts/"+post.ID+"/publish",
+		nil,
+		editor.Token,
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusConflict,
+	)
+}
+
+func TestPostAPI_Archive_AlreadyArchived(t *testing.T) {
+	app := NewTestApplication(t)
+
+	editor := CreateEditorFixture(t, app)
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreateArchivedPostFixture(
+		t,
+		app.Server.DB(),
+		editor.User,
+		category,
+	)
+
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPost,
+		"/api/admin/v1/posts/"+post.ID+"/archive",
+		nil,
+		editor.Token,
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusBadRequest,
+	)
+}
