@@ -1,12 +1,15 @@
 package integration
 
 import (
+	"encoding/json"
 	"errors"
 	appErrors "leslie-blog-server/internal/errors"
 	"leslie-blog-server/internal/modules/post/dto"
+	postdto "leslie-blog-server/internal/modules/post/dto"
 	"leslie-blog-server/internal/modules/post/model"
 	postmodel "leslie-blog-server/internal/modules/post/model"
 	tagmodel "leslie-blog-server/internal/modules/tag/model"
+	"leslie-blog-server/internal/pkg/pagination"
 	"leslie-blog-server/internal/pkg/ulid"
 	"net/http"
 	"testing"
@@ -1733,5 +1736,109 @@ func TestPostAPI_Delete_OwnerSuccess(t *testing.T) {
 			"expected post tags to be deleted, got %d",
 			len(relations),
 		)
+	}
+}
+
+func TestPublicPostAPI_List_OnlyPublished(t *testing.T) {
+	app := NewTestApplication(t)
+
+	owner := CreateEditorFixture(t, app)
+
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	draft := CreatePostFixture(
+		t,
+		app.Server.DB(),
+		owner.User,
+		category,
+	)
+
+	published := CreatePublishedPostFixture(
+		t,
+		app.Server.DB(),
+		owner.User,
+		category,
+	)
+
+	archived := CreateArchivedPostFixture(
+		t,
+		app.Server.DB(),
+		owner.User,
+		category,
+	)
+
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodGet,
+		"/api/v1/posts",
+		nil,
+		"",
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusOK,
+	)
+	apiResponse := DecodeAPIResponse(
+		t,
+		response,
+	)
+	if apiResponse.Code != 0 {
+		t.Fatalf(
+			"expected code 0, got %d, message=%s",
+			apiResponse.Code,
+			apiResponse.Message,
+		)
+	}
+	var posts pagination.Result[postdto.PublicPostListItem]
+
+	if err := json.Unmarshal(
+		apiResponse.Data,
+		&posts,
+	); err != nil {
+		t.Fatalf(
+			"decode post list failed: %v",
+			err,
+		)
+	}
+	if posts.Total != 1 {
+		t.Fatalf(
+			"expected total 1, got %d",
+			posts.Total,
+		)
+	}
+	if len(posts.List) != 1 {
+		t.Fatalf(
+			"expected 1 published post, got %d",
+			len(posts.List),
+		)
+	}
+	if posts.List[0].Slug != published.Slug {
+		t.Fatalf(
+			"unexpected post slug: %s",
+			posts.List[0].Slug,
+		)
+	}
+	for _, post := range posts.List {
+		if post.Slug == draft.Slug {
+			t.Fatal("draft post must not be visible publicly")
+		}
+		if post.Slug == archived.Slug {
+			t.Fatal("archived post must not be visible publicly")
+		}
+	}
+	foundPublished := false
+
+	for _, post := range posts.List {
+		if post.Slug == published.Slug {
+			foundPublished = true
+			break
+		}
+	}
+
+	if !foundPublished {
+		t.Fatal("published post should be visible publicly")
 	}
 }
