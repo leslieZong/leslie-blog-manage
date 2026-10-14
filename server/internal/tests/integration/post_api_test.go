@@ -12,6 +12,7 @@ import (
 	"leslie-blog-server/internal/pkg/pagination"
 	"leslie-blog-server/internal/pkg/ulid"
 	"net/http"
+	"sync"
 	"testing"
 
 	"gorm.io/gorm"
@@ -1840,5 +1841,133 @@ func TestPublicPostAPI_List_OnlyPublished(t *testing.T) {
 
 	if !foundPublished {
 		t.Fatal("published post should be visible publicly")
+	}
+}
+
+func TestPublicPostAPI_IncrementViewCount_Published(
+	t *testing.T,
+) {
+	app := NewTestApplication(t)
+
+	owner := CreateEditorFixture(t, app)
+
+	category := CreateCategoryFixture(t, app.Server.DB())
+	post := CreatePublishedPostFixture(
+		t,
+		app.Server.DB(),
+		owner.User,
+		category,
+	)
+
+	response := DoJSONRequest(
+		t,
+		app.Server.HTTPHandler(),
+		http.MethodPost,
+		"/api/v1/posts/"+post.ID+"/view",
+		nil,
+		"",
+	)
+
+	AssertStatus(
+		t,
+		response,
+		http.StatusOK,
+	)
+
+	apiResponse := DecodeAPIResponse(
+		t,
+		response,
+	)
+
+	if apiResponse.Code != 0 {
+		t.Fatalf(
+			"expected code 0, got %d",
+			apiResponse.Code,
+		)
+	}
+
+	var actual postmodel.Post
+
+	if err := app.Server.DB().
+		Where("id = ?", post.ID).
+		First(&actual).Error; err != nil {
+		t.Fatalf(
+			"query post failed: %v",
+			err,
+		)
+	}
+
+	if actual.ViewCount != 1 {
+		t.Fatalf(
+			"expected view count 1, got %d",
+			actual.ViewCount,
+		)
+	}
+}
+
+func TestPublicPostAPI_IncrementViewCount_Concurrent(
+	t *testing.T,
+) {
+	app := NewTestApplication(t)
+
+	owner := CreateEditorFixture(t, app)
+
+	category := CreateCategoryFixture(t, app.Server.DB())
+
+	post := CreatePublishedPostFixture(
+		t,
+		app.Server.DB(),
+		owner.User,
+		category,
+	)
+	_ = post
+
+	const requestCount = 100
+
+	var wg sync.WaitGroup
+
+	wg.Add(requestCount)
+
+	for i := 0; i < requestCount; i++ {
+		go func() {
+			defer wg.Done()
+
+			response := DoJSONRequest(
+				t,
+				app.Server.HTTPHandler(),
+				http.MethodPost,
+				"/api/v1/posts/"+post.ID+"/view",
+				nil,
+				"",
+			)
+
+			if response.Code != http.StatusOK {
+				t.Errorf(
+					"expected status 200, got %d",
+					response.Code,
+				)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	var actual postmodel.Post
+
+	if err := app.Server.DB().
+		Where("id = ?", post.ID).
+		First(&actual).Error; err != nil {
+		t.Fatalf(
+			"query post failed: %v",
+			err,
+		)
+	}
+
+	if actual.ViewCount != requestCount {
+		t.Fatalf(
+			"expected view count %d, got %d",
+			requestCount,
+			actual.ViewCount,
+		)
 	}
 }

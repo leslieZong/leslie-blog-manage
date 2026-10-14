@@ -222,15 +222,28 @@ func (r *gormPostRepository) IncrementViewCount(
 	id string,
 ) error {
 
-	return r.db.
+	result := r.db.
 		WithContext(ctx).
 		Model(&model.Post{}).
-		Where("id = ?", id).
+		Where(
+			"id = ? AND status = ?",
+			id,
+			model.PostStatusPublished,
+		).
 		UpdateColumn(
 			"view_count",
 			gorm.Expr("view_count + ?", 1),
-		).
-		Error
+		)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
 }
 
 func (r *gormPostRepository) FindPage(

@@ -74,10 +74,6 @@ type Server struct {
 
 // HTTPHandler 注册所有路由并返回 http.Handler，用于集成测试。
 func (s *Server) HTTPHandler() http.Handler {
-	if !s.registered {
-		s.router.Register()
-		s.registered = true
-	}
 	return s.engine
 }
 func (s *Server) DB() *gorm.DB {
@@ -419,6 +415,10 @@ func (s *Server) Run() error {
 	}
 	s.Close()
 	return nil
+}
+func (s *Server) RegisterRoutes() {
+	// 注册所有路由。
+	s.router.Register()
 }
 func (s *Server) Close() error {
 

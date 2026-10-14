@@ -101,6 +101,7 @@ func New(cfg *config.Config) (*bootstrap.Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	r.RegisterRoutes()
 
 	return r, nil
 }

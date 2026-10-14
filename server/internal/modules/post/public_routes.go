@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"leslie-blog-server/internal/modules/post/handler"
+	"leslie-blog-server/internal/pkg/httpx"
 )
 
 // RegisterPublicRoutes
@@ -43,6 +44,6 @@ func RegisterPublicRoutes(
 	// 增加阅读量
 	posts.POST(
 		"/:id/view",
-		postHandler.IncrementViewCount,
+		httpx.Adapt(postHandler.IncrementViewCount),
 	)
 }

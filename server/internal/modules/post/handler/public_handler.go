@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 
 	"leslie-blog-server/internal/modules/post/dto"
@@ -139,7 +137,7 @@ func (h *PublicPostHandler) GetBySlug(c *gin.Context) {
 //
 // 后续可以进一步优化成：
 // 访问文章详情时自动增加浏览量。
-func (h *PublicPostHandler) IncrementViewCount(c *gin.Context) {
+func (h *PublicPostHandler) IncrementViewCount(c *gin.Context) error {
 
 	id := c.Param("id")
 
@@ -150,8 +148,7 @@ func (h *PublicPostHandler) IncrementViewCount(c *gin.Context) {
 	)
 
 	if err != nil {
-		response.AppError(c, err)
-		return
+		return err
 	}
 
 	// 增加阅读量
@@ -160,10 +157,9 @@ func (h *PublicPostHandler) IncrementViewCount(c *gin.Context) {
 		id,
 	); err != nil {
 
-		response.AppError(c, err)
-
-		return
+		return err
 	}
 
-	c.Status(http.StatusNoContent)
+	response.Success(c, nil)
+	return nil
 }
