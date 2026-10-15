@@ -23,6 +23,8 @@ import (
 	categoryHandler "leslie-blog-server/internal/modules/category/handler"
 	categoryRepository "leslie-blog-server/internal/modules/category/repository"
 	categoryService "leslie-blog-server/internal/modules/category/service"
+	githubClient "leslie-blog-server/internal/modules/github/client"
+	githubService "leslie-blog-server/internal/modules/github/service"
 	homeHandler "leslie-blog-server/internal/modules/home/handler"
 	homeService "leslie-blog-server/internal/modules/home/service"
 	permissionRepository "leslie-blog-server/internal/modules/permission/repository"
@@ -206,11 +208,22 @@ func NewRouter(
 		cacheStore,
 		log,
 	)
+	githubClient := githubClient.NewGitHubClient(
+		http.DefaultClient,
+		cfg.GitHub.BaseURL,
+	)
+	githubSvc := githubService.NewGitHubService(
+		githubClient,
+		cacheStore,
+		cfg.GitHub.Username,
+		time.Duration(cfg.GitHub.ActivityCacheTTL)*time.Second,
+	)
 	homeSvc := homeService.NewHomeService(
 		postSvc,
 		categorySvc,
 		projectSvc,
 		techstackSvc,
+		githubSvc,
 		cacheStore,
 		log,
 	)
@@ -315,9 +328,6 @@ func NewRouter(
 
 // Run 启动 HTTP Server。
 func (s *Server) Run() error {
-
-	// 注册所有路由。
-	s.router.Register()
 
 	// // 生成监听地址。
 	// //

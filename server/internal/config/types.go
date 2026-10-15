@@ -9,6 +9,7 @@ type Config struct {
 	JWT    JWTConfig    `mapstructure:"jwt"`
 	Redis  RedisConfig  `mapstructure:"redis"`
 	App    AppConfig    `mapstructure:"app"`
+	GitHub GitHubConfig `mapstructure:"github"`
 }
 
 // ServerConfig 保存 HTTP Server 相关配置。
@@ -70,4 +71,12 @@ type RedisConfig struct {
 	Addr     string `mapstructure:"addr"`
 	Password string `mapstructure:"password"`
 	DB       int    `mapstructure:"db"`
+}
+
+// GitHubConfig 保存 GitHub 相关配置。
+type GitHubConfig struct {
+	Username         string `mapstructure:"username"`
+	BaseURL          string `mapstructure:"base_url"`
+	Timeout          int    `mapstructure:"timeout"`
+	ActivityCacheTTL int    `mapstructure:"activity_cache_ttl"`
 }

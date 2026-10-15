@@ -54,3 +54,9 @@ redis:
   password: ""
   db: 0
 
+github:
+  username: "leslieZong"
+  base_url: "https://api.github.com"
+  timeout: 5
+  activity_cache_ttl: 300
+

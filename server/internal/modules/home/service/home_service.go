@@ -10,6 +10,8 @@ import (
 	categorydto "leslie-blog-server/internal/modules/category/dto"
 	categorymodel "leslie-blog-server/internal/modules/category/model"
 	categoryservice "leslie-blog-server/internal/modules/category/service"
+	githubdto "leslie-blog-server/internal/modules/github/dto"
+	githubservice "leslie-blog-server/internal/modules/github/service"
 	"leslie-blog-server/internal/modules/home/dto"
 	postdto "leslie-blog-server/internal/modules/post/dto"
 	postmodel "leslie-blog-server/internal/modules/post/model"
@@ -45,6 +47,7 @@ type homeService struct {
 	categoryService  categoryservice.CategoryService
 	projectService   projectservice.ProjectService
 	techStackService techstackservice.TechStackService
+	githubService    githubservice.GitHubService
 	cache            cache.Cache
 	logger           *logger.Logger
 }
@@ -54,6 +57,7 @@ func NewHomeService(
 	categoryService categoryservice.CategoryService,
 	projectService projectservice.ProjectService,
 	techStackService techstackservice.TechStackService,
+	githubService githubservice.GitHubService,
 	cache cache.Cache,
 	logger *logger.Logger,
 ) HomeService {
@@ -66,6 +70,7 @@ func NewHomeService(
 		projectService: projectService,
 
 		techStackService: techStackService,
+		githubService:    githubService,
 		cache:            cache,
 		logger:           logger,
 	}
@@ -157,6 +162,8 @@ func (s *homeService) loadHome(
 		categories []*categorymodel.Category
 
 		techStacks []*techstackmodel.TechStack
+
+		githubActivity *githubdto.ActivityResponse
 	)
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -286,6 +293,24 @@ func (s *homeService) loadHome(
 		return nil
 	})
 
+	g.Go(func() error {
+		activity, err := s.githubService.GetPublicActivity(ctx)
+
+		if err != nil {
+			// 第三方服务失败。
+			// 不阻断整个首页。
+			githubActivity = &githubdto.ActivityResponse{
+				Items: []*githubdto.Activity{},
+			}
+
+			return nil
+		}
+
+		githubActivity = activity
+
+		return nil
+	})
+
 	// ---------------------------------------------
 	// 等待所有任务结束
 	// ---------------------------------------------
@@ -319,5 +344,7 @@ func (s *homeService) loadHome(
 		TechStacks: techstackdto.FromPublicModelList(
 			techStacks,
 		),
+
+		GitHubActivity: githubActivity,
 	}, nil
 }

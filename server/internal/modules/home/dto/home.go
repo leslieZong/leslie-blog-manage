@@ -2,6 +2,7 @@ package dto
 
 import (
 	categorydto "leslie-blog-server/internal/modules/category/dto"
+	githubdto "leslie-blog-server/internal/modules/github/dto"
 	postdto "leslie-blog-server/internal/modules/post/dto"
 	projectdto "leslie-blog-server/internal/modules/project/dto"
 	techstackdto "leslie-blog-server/internal/modules/techstack/dto"
@@ -41,4 +42,9 @@ type HomeResponse struct {
 	//
 	// 首页技术栈数据。
 	TechStacks []*techstackdto.PublicTechStackResponse `json:"techStacks"`
+
+	// GitHubActivity
+	//
+	// 首页 GitHub 活动数据。
+	GitHubActivity *githubdto.ActivityResponse `json:"githubActivity"`
 }
